@@ -1,3 +1,4 @@
-Hypercorn==0.5.3
-aiomysql==0.0.20
+Hypercorn
+asyncio
+# aiomysql
 quart

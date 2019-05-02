@@ -8,7 +8,8 @@ __pycache__/
 
 __docs__/
 __img-src__/
-res/
+__res__/
+__cert__/
 
 
 
