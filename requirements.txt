@@ -1,4 +1,6 @@
 Hypercorn
 asyncio
+aiohttp
 # aiomysql
 quart
+ujson
