@@ -4,3 +4,4 @@ aiohttp
 # aiomysql
 quart
 ujson
+telethon

@@ -9,15 +9,19 @@ class Telebot:
     async def get(self, url, json=dict())->dict:
         async with ClientSession(json_serialize=ujson.dumps) as session:
             async with session.get(url, json=json) as response:
-                assert response.status == 200
-                return await response.json()
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    print(await response.json())
         return dict()
 
     async def post(self, url, json=dict())->dict:
         async with ClientSession(json_serialize=ujson.dumps) as session:
             async with session.get(url, json=json) as response:
-                assert response.status == 200
-                return await response.json()
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    print(await response.json())
         return dict()
 
 
@@ -29,10 +33,27 @@ class Telebot:
 
     async def sendPhoto(self, chat_id, **kwargs)->dict:
         """
+        photo="http://www.aisystems.ru/temp/hor/img/logo.png", caption="<b>Возвращение квантового кота</b>", parse_mode="html"
         """
         url = self.url + 'sendPhoto'
         params = {'chat_id': chat_id, **kwargs}
         return await self.post(url, params)
+
+    async def sendAnimation(self, chat_id, **kwargs)->dict:
+        """
+        photo="http://www.aisystems.ru/temp/hor/img/logo.png", caption="<b>Возвращение квантового кота</b>", parse_mode="html"
+        """
+        url = self.url + 'sendAnimation'
+        params = {'chat_id': chat_id, **kwargs}
+        return await self.post(url, params)     
+
+    async def sendVideo(self, chat_id, **kwargs)->dict:
+        """
+        photo="http://www.aisystems.ru/temp/hor/img/logo.png", caption="<b>Возвращение квантового кота</b>", parse_mode="html"
+        """
+        url = self.url + 'sendVideo'
+        params = {'chat_id': chat_id, **kwargs}
+        return await self.post(url, params)        
 
 
     async def setWebhook(self, wh_url)->dict:

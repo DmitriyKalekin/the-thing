@@ -1,5 +1,5 @@
 import os
-from _private_.telegram_key import CFG_TELEGRAM_KEY
+from _private_.telegram_key import CFG_TELEGRAM_KEY, CFG_API_ID, CFG_API_HASH, CFG_PHONE_NUMBER
 
 # class Config:
 #     TELEGRAM_KEY = CFG_TELEGRAM_KEY
@@ -18,6 +18,9 @@ class Config:
     HOST = os.getenv('HOST')
     PORT = os.getenv('PORT')
     TELEGRAM_KEY = CFG_TELEGRAM_KEY
+    API_ID  =  CFG_API_ID
+    API_HASH = CFG_API_HASH
+    API_PHONE_NUMBER = CFG_PHONE_NUMBER
     URL = f'https://api.telegram.org/bot{TELEGRAM_KEY}/'
     WH_URL = f'https://eva-bot.ru:{PORT}/'    
 

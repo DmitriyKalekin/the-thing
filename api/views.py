@@ -1,18 +1,51 @@
 from api.server import app
+
 import asyncio
 from aiohttp import ClientSession
 import quart
 from quart import Response, jsonify, request
 import json
 import ujson
+from pprint import pprint
 
 Response.default_mimetype = "application/json"
 
 @app.route("/", methods=['POST', 'GET'])
 async def index():
+    r = await request.get_json()
     if request.method == 'POST':
-        r = await request.get_json()
-        print(r)
+        if 'callback_query' in r:
+            print("CALLBACK detected ------------------------")
+            pprint(r)
+            await app.router.index_callback(r)
+        elif 'message' in r:
+            await app.router.index_message(r)
+        # await app.telebot.sendMessage(435627225, "Незнакомый", disable_notification=True)
+
+        # 
+        # pprint(r)
+        # if r["message"]["chat"].get("text", "") == "/group":
+        #     # group chat
+        #     if int(r["message"]["chat"]["id"]) < 0:
+        #         channel_title = r["message"]["chat"]["title"]
+        #         members = await app.client.get_participants(channel_title)
+        #         for m in members:
+        #             # UserStatusOffline
+        #             # UserStatusOnline
+        #             # UserStatusRecently
+        #             print(m.id, m.bot, m.first_name, m.last_name, m.username, m.status.__class__.__name__)
+
+
+        # nearest_sts = ["one", "two"]
+        # r = await app.telebot.sendMessage(
+        #     ,  
+        #     "Тест клавиатуры в групповом чате", 
+        #     parse_mode="markdown",
+        #     # reply_markup={
+        #     #     "keyboard": [[{"text": '/Опция {}'.format(n)}] for n in nearest_sts] }
+        #    )
+        # 435627225
+        # 
     #     if 'callback_query' in r:
     #         print("CALLBACK detected ------------------------")
     #         CommandsRouter.index_callback(r)
@@ -41,7 +74,7 @@ async def start_job():
     return jsonify({"status": "ok"})
 
 @app.errorhandler(400)
-def bad_request(e):
+async def bad_request(e):
     return jsonify({
         "status":   {
             "code": 400,
@@ -51,7 +84,7 @@ def bad_request(e):
     }), 400
 
 @app.errorhandler(404)
-def page_not_found(e):
+async def page_not_found(e):
     return jsonify({
         "status":   {
             "code": 404,
@@ -61,7 +94,7 @@ def page_not_found(e):
     }), 404
 
 @app.errorhandler(500)
-def internal_server_error(e):
+async def internal_server_error(e):
     return jsonify({
         "status":   {
             "code": 500,

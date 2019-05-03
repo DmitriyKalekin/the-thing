@@ -11,6 +11,7 @@ __img-src__/
 __res__/
 __cert__/
 _private_/
+.vscode/
 
 
 
