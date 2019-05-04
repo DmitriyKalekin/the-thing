@@ -8,7 +8,7 @@ class CommandsRouter:
     """
     def __init__(self, app):
         self.app = app
-        self.telebot = app.telebot
+        self.telebot = app["telebot"]
 
     
     async def index_message(self, r):
@@ -61,9 +61,9 @@ class CommandsRouter:
             return None
 
         # ----------- нельзя пересоздавать ---------------
-        if chat_id in self.app.games:
+        if chat_id in self.app["games"]:
             # ----------- уже в игре ---------------
-            if r["message"]["from"]["id"] in self.app.games[chat_id]["players"]:
+            if r["message"]["from"]["id"] in self.app["games"][chat_id]["players"]:
                 await self.telebot.sendMessage(chat_id, f"@{sender_username} {sender_first_name}, Ты уже в игре. Подожди!")            
                 return None 
 
@@ -76,7 +76,7 @@ class CommandsRouter:
             return None
 
         # ----------- создаём игру на этот групповой чат ---------------
-        self.app.games[chat_id] = {
+        self.app["games"][chat_id] = {
             "creator": r["message"]["from"]["id"],
             "players": {r["message"]["from"]["id"]: r["message"]["from"]}
         }
@@ -91,13 +91,13 @@ class CommandsRouter:
 
 
     async def callback____play____join(self, chat_id, r):
-        self.app.games[chat_id]["players"][r["callback_query"]["from"]["id"]] = r["callback_query"]["from"]
+        self.app["games"][chat_id]["players"][r["callback_query"]["from"]["id"]] = r["callback_query"]["from"]
         sender_name = r["callback_query"]["from"]["first_name"] + " " + r["callback_query"]["from"]["last_name"]
         return await self.telebot.sendMessage(chat_id, f"✅ *{sender_name}* в игре.", parse_mode="markdown")
 
     async def callback____play____decline(self, chat_id, r):
-        if r["callback_query"]["from"]["id"] in self.app.games[chat_id]["players"]:
-            del self.app.games[chat_id]["players"][r["callback_query"]["from"]["id"]]
+        if r["callback_query"]["from"]["id"] in self.app["games"][chat_id]["players"]:
+            del self.app["games"][chat_id]["players"][r["callback_query"]["from"]["id"]]
         sender_name = r["callback_query"]["from"]["first_name"] + " " + r["callback_query"]["from"]["last_name"]
         return await self.telebot.sendMessage(chat_id, f"_{sender_name} отказался._", parse_mode="markdown")
 

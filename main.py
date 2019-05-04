@@ -1,25 +1,53 @@
-# import asyncio
+import asyncio
 # import aiomysql
-from api.server import app
-from api.views import *
-from api.jobs import jobs_loop
+
+# from api.jobs import jobs_loop
+# from config import get_config
+import ssl
+from aiohttp import web, ClientSession
+from api.routes import setup_routes
+from api.commands import CommandsRouter
+from api.telebot import Telebot
 from config import get_config
+import ujson
 
+# from api.registry import Registry
 
+# from telethon import TelegramClient, sync
+# from telethon import utils
 
-# async def main(loop):
+# import uvloop
+# asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
+# async def main222(loop):
 #     app.CFG = CFG
 #     app.loop = loop
 #     asyncio.ensure_future(jobs_loop())
 
+def init(loop):
+    cfg = get_config()
+    app = web.Application(loop=loop)
+    app["loop"] = loop
+    app["jobs"] = []
+    app["cfg"] = cfg
+    app["session"] = ClientSession(json_serialize=ujson.dumps)
+    app["telebot"] = Telebot(cfg.URL, app["session"])
+    app["games"] = dict()
+    app["cmd"] = CommandsRouter(app)
+    setup_routes(app)
+    return app
+
+
+
+def main():
+    ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_ctx.load_cert_chain('/etc/ssl/eva-bot.ru/flask.pem', '/etc/ssl/eva-bot.ru/certificate.key')
+    loop = asyncio.get_event_loop()
+    # loop.run_until_complete(main(loop))
+    app = init(loop)
+    web.run_app(app, host="0.0.0.0", port=8443, ssl_context=ssl_ctx, reuse_port=True)
+    # app.run(debug=True)
 
 if __name__ == "__main__":
-    try:
-        # loop = asyncio.get_event_loop()
-        # loop.run_until_complete(main(loop))
-        app.run(host="0.0.0.0", port=8443, certfile="/etc/ssl/eva-bot.ru/flask.pem", keyfile="/etc/ssl/eva-bot.ru/certificate.key", debug=True, use_reloader=True)
-        # app.run(debug=True)
-    except KeyboardInterrupt:
-        await app.session.close()
-        print("Exiting")
+    main()
 
