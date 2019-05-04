@@ -20,5 +20,6 @@ if __name__ == "__main__":
         app.run(host="0.0.0.0", port=8443, certfile="/etc/ssl/eva-bot.ru/flask.pem", keyfile="/etc/ssl/eva-bot.ru/certificate.key", debug=True, use_reloader=True)
         # app.run(debug=True)
     except KeyboardInterrupt:
+        await app.session.close()
         print("Exiting")
 

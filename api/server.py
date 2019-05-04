@@ -3,7 +3,10 @@ from api.telebot import Telebot
 from api.commands import CommandsRouter
 from config import get_config
 from telethon import TelegramClient, sync
+from aiohttp import ClientSession
 from telethon import utils
+import ujson
+
 # from flask import Flask
 
 
@@ -12,9 +15,11 @@ app.url_map.strict_slashes = False
 app.config['DEBUG'] = True
 app.jobs = []
 app.cfg = get_config()
-app.telebot = Telebot(app.cfg.URL)
+app.session = ClientSession(json_serialize=ujson.dumps)
+app.telebot = Telebot(app.cfg.URL, app.session)
 app.games = dict()
 app.router = CommandsRouter(app)
+
 
 # app.client = TelegramClient('session_name', cfg.API_ID, cfg.API_HASH).start()
 # app.client.connect()

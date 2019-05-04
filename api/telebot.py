@@ -1,27 +1,22 @@
-from aiohttp import ClientSession, ClientConnectionError
-import ujson
-
-
 class Telebot:
-    def __init__(self, url):
+    def __init__(self, url, session):
         self.url = url
+        self.session = session
         
     async def get(self, url, json=dict())->dict:
-        async with ClientSession(json_serialize=ujson.dumps) as session:
-            async with session.get(url, json=json) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    print(await response.json())
+        async with self.session.get(url, json=json) as response:
+            if response.status == 200:
+                return await response.json()
+            else:
+                print(await response.json())
         return dict()
 
     async def post(self, url, json=dict())->dict:
-        async with ClientSession(json_serialize=ujson.dumps) as session:
-            async with session.get(url, json=json) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    print(await response.json())
+        async with self.session.get(url, json=json) as response:
+            if response.status == 200:
+                return await response.json()
+            else:
+                print(await response.json())
         return dict()
 
 
