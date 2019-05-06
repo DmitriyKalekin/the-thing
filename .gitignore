@@ -7,8 +7,8 @@ __pycache__/
 *.so
 
 __docs__/
-__img-src__/
-__res__/
+__src__/
+res/
 __cert__/
 _private_/
 .vscode/

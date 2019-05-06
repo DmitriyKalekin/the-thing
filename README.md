@@ -3,4 +3,6 @@ Card game The Thing
 
 
 
-https://eva-bot.ru:8000/
+https://eva-bot.ru:8443/
+
+

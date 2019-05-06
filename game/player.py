@@ -2,6 +2,8 @@ from game.card import Card
 # import inspect
 # from board import Board
 import random
+# from emoji import emojize
+
 
 class Player:
     """
@@ -10,17 +12,51 @@ class Player:
     # Player side CONSTS
     GOOD = 0
     EVIL = 1
-    BAD  = 2   
+    BAD = 2   
 
-    def __init__(self, hand, board:"Board", name="Player"):
+    def __init__(self, hand, board, player_info: dict):
+        self.title_message_id = None
+        self.hand_message_id = []
+        self.panel_message_id = None
+
+        self.usr_id = player_info["usr_id"]
+        self.chat_id = player_info["chat_id"]
+        self.name = player_info["usr_fullname"]
+        self.usr_fullname = player_info["usr_fullname"]
+        self.usr_alert = player_info["usr_alert"] 
+        self.uuid = str(player_info["usr_id"]) + str(player_info["chat_id"]) + self.usr_alert
         self.hand = hand
-        self.name = name
         self.board = board
         self.side = Player.GOOD
         self.update_player_side()
-        if self.side == Player.EVIL:
-            self.name = "TheThing"
+        self.avatar = "😺"
+        self.set_avatar()
 
+    def set_avatar(self):
+        avatars = {
+            "Yulia Reznikova": "👩",
+            "Джамшид Джураев": "👱️",
+            "Anton Mozgovoy": "👨",
+            "Tanya Tanya": "👩",
+            "Марсель Гиззатов": "👨",
+            "Sergey Saltovskiy": "👨",
+            "Zair Ognev": "👨",
+            "Olga Deribo": "👩", 
+            "Дмитрий Калекин": "👨",
+            "Igor": "👨",
+            "Антон Макарочкин": "👨",
+            "Sergey Evseenko": "👨",
+            "Zag": "👨",
+            "Антон Артюков": "👨",
+            "Александр Грицай": "👶",
+            "Dmitriy Zaytsev": "👨"
+        }
+        ava = avatars.get(self.usr_fullname, "😺")
+        if self.side == Player.EVIL:
+            ava = "👾"
+        self.avatar = ava
+        return
+        
     def update_player_side(self):
         for c in self.hand:
             if c.is_evil():
@@ -35,7 +71,7 @@ class Player:
     def get_possible_drop(self):
         return [c.uuid for c in self.hand if c.role not in [Card.ROLE_EVIL]]
 
-    def get_possible_give(self, receiver:"Player"):
+    def get_possible_give(self, receiver: "Player"):
         wrong_cards = [Card.ROLE_EVIL]
         if self.is_good():
             wrong_cards.append(Card.ROLE_INFECTION)
@@ -47,7 +83,13 @@ class Player:
         for i, c in enumerate(self.hand):
             if c.uuid == uuid:
                 return i
-        raise Warning(f"Card with index {uuid} not found in hand of {self.name}")
+        # raise Warning(f"Card with index {uuid} not found in hand of {self.name}")
+        return None
+
+    def get_card_by_uuid(self, uuid):
+        for i, c in enumerate(self.hand):
+            if c.uuid == uuid:
+                return c
         return None
 
     def is_good(self):
@@ -64,21 +106,21 @@ class Player:
         self.side = Player.BAD       
 
     def become_evil(self):
-        self.side = EVIL
+        self.side = Player.EVIL
 
-    def pull_deck(self)->Card:
+    def pull_deck(self) -> Card:
         return self.board.deck.pop(0)   
 
     def take_on_hand(self, card):
         self.hand.append(card)   
         print("Карта добавлена на руку:", card.name)  
 
-    def accept_card(self, card: Card, sender:"Player"):
+    def accept_card(self, card: Card, sender: "Player"):
         self.hand.append(card)
         card.on_accepted(self, sender)
         return
 
-    def play_card(self, card: Card, target = None):
+    def play_card(self, card: Card, target=None):
         """
         Если цели нет - просто играется карта
         Если цель игрок - играется на него
@@ -86,13 +128,13 @@ class Player:
         assert target is None or target.__class__.__name__ == "Player"
         print(f"Вы сыграли карту {card.name}")
 
-    def play_panic(self, card:Card):
+    def play_panic(self, card: Card):
         print("Автоматом играем карту паники:", card.name)
 
     def choose_card(self, reason):
         pass
 
-    def swap_cards(self, card:Card, receiver:"Player"):
+    def swap_cards(self, card: Card, receiver: "Player"):
         # Люди не могут передавать заражение
         # assert not (sender.side == Player.GOOD and card_sender.role == Card.ROLE_INFECTION)
         # assert not (receiver.side == Player.GOOD and card_receiver.role == Card.ROLE_INFECTION)

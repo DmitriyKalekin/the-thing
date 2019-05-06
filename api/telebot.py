@@ -22,7 +22,6 @@ class Telebot:
         return dict()
 
     async def sendMessage(self, chat_id, text, **kwargs) -> dict:
-        print("Send msg")
         url = self.url + 'sendMessage'
         params = {'chat_id': chat_id, 'text': text,  **kwargs}
         return await self.post(url, params)
@@ -33,6 +32,14 @@ class Telebot:
         """
         url = self.url + 'sendPhoto'
         params = {'chat_id': chat_id, **kwargs}
+        return await self.post(url, params)
+
+    async def sendMediaGroup(self, chat_id, media: list, **kwargs) -> dict:
+        """
+        photo="http://www.aisystems.ru/temp/hor/img/logo.png", caption="<b>Возвращение квантового кота</b>", parse_mode="html"
+        """
+        url = self.url + 'sendMediaGroup'
+        params = {'chat_id': chat_id, "media": media, **kwargs}
         return await self.post(url, params)
 
     async def sendAnimation(self, chat_id, **kwargs) -> dict:
@@ -76,6 +83,11 @@ class Telebot:
         params = {'chat_id': chat_id, 'message_id': message_id, 'text': text, **kwargs}
         return await self.post(url, params)
 
+    async def editMessageMedia(self, chat_id, message_id, media, **kwargs) -> dict:
+        url = self.url + 'editMessageMedia'
+        params = {'chat_id': chat_id, 'message_id': message_id, 'media': media, **kwargs}
+        return await self.post(url, params)    
+    
     async def paramsCallbackQuery(self, callback_query_id, text, **kwargs) -> dict:
         url = self.url + 'paramsCallbackQuery'
         params = {'callback_query_id': callback_query_id, 'text': text, **kwargs}

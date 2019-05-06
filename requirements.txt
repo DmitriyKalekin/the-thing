@@ -4,4 +4,7 @@ aiohttp
 # aiomysql
 quart
 ujson
-telethon
+# telethon
+# emoji
+aiogram
+uvloop
