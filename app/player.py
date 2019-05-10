@@ -20,7 +20,8 @@ class Player:
         self.panel_message_id = None
         self.hand_slots = []
         self.log_message_id = None
-        self.log_state = ""
+        self.global_log = []
+        self.local_log = []
 
         self.user_id = player_info["user_id"]
         self.group_chat_id = player_info["group_chat_id"]

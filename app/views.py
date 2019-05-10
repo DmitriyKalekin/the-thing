@@ -20,7 +20,6 @@ async def post_index(request):
         assert message.chat_id is not None
         assert message.text != ""        
         if message.text[:1] == "/":
-            print("got message")
             await request.app["events"].notify_observers(message)
     return web.json_response({"status": 200, "index": "ok"})
 

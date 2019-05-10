@@ -99,9 +99,9 @@ class Game:
             await asyncio.gather(*[self.show_cards(p) for p in self.board.players])
             
     async def show_cards(self, p: Player):
-        if not p.title_message_id:
-            r1 = await self.app["telebot"].sendMessage(p.user_id, f"Ваше имя: *{p.user_fullname}* -------------------------------- ")
-            p.title_message_id = r1["result"]["message_id"]
+        # if not p.title_message_id:
+        #     r1 = await self.app["telebot"].sendMessage(p.user_id, f"Ваше имя: *{p.user_fullname}* -------------------------------- ")
+        #     p.title_message_id = r1["result"]["message_id"]
         
         if not p.table_message_id:
             r2 = await self.app["telebot"].sendMessage(p.user_id, self.table)
@@ -115,17 +115,19 @@ class Game:
         if not p.panel_message_id:
             r3 = await self.app["telebot"].sendMessage(p.user_id, f"`[Это сообщение обновится, и вы выберете ваше действие с картами]`")
             p.panel_message_id = r3["result"]["message_id"]
+        else:
+            await self.app["telebot"].editMessageText(p.user_id, p.panel_message_id, "\r\n".join(p.local_log))
         
         if not p.log_message_id:
             r4 = await self.app["telebot"].sendMessage(p.user_id, "\n".join(self.log))
             p.log_message_id = r4["result"]["message_id"]        
         return
 
-    async def show_play_drop_options(self, p, msg=""):
+    async def show_play_drop_options(self, p):
         await self.app["telebot"].editMessageText(
             p.user_id,
             p.panel_message_id,
-            msg,
+            "\r\n".join(p.local_log),
             reply_markup={
                 "inline_keyboard": [
                     *[[{"text": f"▶️ {p.get_card_by_uuid(play_uuid).name}", "callback_data": f"phase2:play_card {play_uuid}"}] for play_uuid in p.get_possible_play()],
@@ -136,11 +138,11 @@ class Game:
             parse_mode="markdown"  
         )
 
-    async def show_give_options(self, p, receiver, msg=""):
+    async def show_give_options(self, p, receiver):
         await self.app["telebot"].editMessageText(
             p.user_id,
             p.panel_message_id,
-            msg,
+            "\r\n".join(p.local_log),
             reply_markup={
                 "inline_keyboard": [
                     *[[{"text": f"🎁 {p.get_card_by_uuid(give_uuid).name}", "callback_data": f"phase3:give_card {give_uuid}"}] for give_uuid in p.get_possible_give(receiver)]
@@ -167,19 +169,18 @@ class Game:
                 c = self.callback_input[p.user_id].pop(index)
                 return c.data, p
 
-    async def clear_input(self, p: Player, msg=""):
+    async def clear_input(self, p: Player):
         assert p.panel_message_id is not None
-        return await self.app["telebot"].editMessageText(p.user_id, p.panel_message_id, msg)       
+        return await self.app["telebot"].editMessageText(p.user_id, p.panel_message_id, "\r\n".join(p.local_log))       
 
-    async def show_table_to_all(self):
-        self.table = self.board.print_hands()
+    async def show_table_to_all(self, table):
         assert type(self.board.players) == list
-        await asyncio.gather(*[self.show_table(p) for p in self.board.players])
+        await asyncio.gather(*[self.show_table(p, table) for p in self.board.players])
         return  
 
-    async def show_table(self, p: Player):
+    async def show_table(self, p: Player, table: str):
         try:
-            await self.app["telebot"].editMessageText(p.user_id, p.table_message_id, self.table)
+            await self.app["telebot"].editMessageText(p.user_id, p.table_message_id, table)
         except Warning:
             print("Стол не поменялся")
 
@@ -235,31 +236,49 @@ class Game:
             except Warning:
                 print(f"Изображение не поменялось на руке: top-card")            
 
-    async def choose(self, user_id: int, message: str, options: list):
-        # await self.print(channel_id, message)
-        await asyncio.sleep(10)
-        return "1" 
+
+    def print_hands(self):
+        output = f"Ход {self.board.move}, ходит *{self.board.current_player().user_fullname}* \r\n"
+        for i, p in enumerate(self.board.players):
+            turn = "✅" if i == self.board.turn else "⏳"  # ☣️ # 🤢
+            # output += "```"
+            name = f"*{p.name}*" if p == self.board.current_player() else p.name
+            output += f"{turn} {p.avatar} {name}\r\n" 
+            # output += "```"            
+            # for o in p.get_cards_names():
+            #     if o == "Заражение":
+            #         output += "`[`🤢`" + o + "]`; "                                    
+            #     if o == "Нечто":
+            #         output += "`[`🍄`" + o + "]`; "
+            #     else:
+            #         output += "`[" + o + "]`; "
+            if len(p.global_log) > 0:
+                output += '\r\n'.join([f"             `{s}`" for s in p.global_log]) + "\r\n"
+            else:
+                 output += "`       ...`\r\n"
+        return output        
 
     async def phase1(self, p: Player) -> bool:
         """
         Фаза взятия карты и игры паники
         Возвращает необходимость продолжать код
         """
-        # p.log_state = "тянет карту с колоды..."
+        # p.global_log = "тянет карту с колоды..."
         # await self.show_table_to_all()
         # await self.show_log_to_all(f"Фаза 1. {p.user_fullname} тянет карту с колоды")
         card = p.pull_deck()
         assert type(card) == Card
         if not card.is_panic():
             p.take_on_hand(card)
+            p.local_log.append(f"🎲 событие `{card.name}` c колоды")
+            p.global_log.append(f"🎲 Вытянул карту события с колоды")
             await self.show_cards(p)
-            # await self.show_log_to_all(f"Добавлена на руку карта события: {card.name}. Теперь нужно сыграть карту или сбросить.")
             return True
         else:
-            await self.show_log_to_all(f"{p.user_fullname} вытянул карту паники {card.name}. Все забегали. Переход хода")
+            p.local_log.append(f"🔥 паника `{card.name}` с колоды, ход завершён.")
+            p.global_log.append(f"🔥 Вытянул карту паники `{card.name}` с колоды. Ход завершён.")
             p.play_panic(card)
             self.board.deck.append(card)  # карта паники ушла в колоду
-            p.log_state = "вытянул панику, закончил ход"
             return False
         return True
 
@@ -269,62 +288,65 @@ class Game:
         """
         # Обновили карты на руке игрока и ждём от него хода
         # await self.show_cards(p)
-        p.log_state = "вытянул карту: играет или сбрасывает..."
-        # await self.show_log_to_all(f"Фаза 2. *{p.user_fullname}* играет или сбрасывает карту")
-        await self.show_play_drop_options(p, "Сыграйте или сбросьте карту")
-        await self.show_table_to_all()
+        p.local_log.append(f"❗️ Сыграйте ▶️ или сбросьте 🗑 карту...")
+        p.global_log.append(f"🃏 Играет или сбрасывает...")
+        await self.show_play_drop_options(p)
+        await self.show_table_to_all(self.print_hands())
 
         cmd = None
         # while cmd not in ["phase2:play_card", "phase2:drop_card"]:
         # await asyncio.sleep(0)
         full_input, triggered_player = await self.listen_input(p)
-        print("Получен triggered_player", triggered_player)
         cmd, card_uuid = full_input.split(" ")
         assert cmd == "phase2:play_card" or cmd == "phase2:drop_card"
         assert triggered_player == p
-        print("received", cmd, card_uuid)
         card = p.pop_card_by_uuid(int(card_uuid))  # выбранная карта
         assert type(card) == Card
         if cmd == "phase2:play_card":
             p.play_card(card, target=None)
-            p.log_state = f"сыграл карту {card.name}"
-            await self.clear_input(p, f"Вы сыграли карту {card.name}")
-            await self.show_log_to_all(f"*{p.user_fullname}* играет карту {card.name}")
+            p.local_log[-1] = f"▶️ сыграна `{card.name}`"
+            p.global_log[-1] = f"▶️ Сыграл карту `{card.name}`"
+
+            await self.clear_input(p)
         else:
-            p.log_state = f"сбросил карту"
-            await self.clear_input(p, f"Вы сбросили карту {card.name}")
-            await self.show_log_to_all(f"*{p.user_fullname}* сбрасывает карту {card.name}")
+            p.local_log[-1] = f"🗑 сброшена `{card.name}`"   
+            p.global_log[-1] = f"🗑 Сбросил карту"
+      
+            await self.clear_input(p)
         
         p.drop_card(card)  # в любом случае в колоду
         await self.show_cards(p)
-        await self.show_table_to_all()
+        await self.show_table_to_all(self.print_hands())
         return
 
     async def proccess_exchange(self, p: Player, next_player: Player):
         full_input, player = await self.listen_input(p)
         assert player == p
         cmd, card_uuid = full_input.split(" ")
+        # BUG: assertion error here
         assert cmd == "phase3:give_card"
         my_card = player.pop_card_by_uuid(int(card_uuid))
         assert type(my_card) == Card
-        player.log_state = f"поменялся картой"
-        await self.clear_input(player, f"Вы отдали карту {my_card.name}")
+        player.local_log[-1] = f"🎁 отдана `{my_card.name}` для *{next_player.user_fullname}*"        
+        player.global_log[-1] = f"♣️ Отдал карту для {next_player.user_fullname}"
+
+        await self.clear_input(player)
         await self.show_cards(player)
-        await self.show_table_to_all()
+        await self.show_table_to_all(self.print_hands())
         return player, my_card
 
     async def phase3(self, p: Player):
         next_player = self.board.player_next()
-        p.log_state = f"меняется картой с {next_player.user_fullname}"
-        next_player.log_state = f"меняется картой с {p.user_fullname}"
-        # await self.show_log_to_all(f"Фаза 3. Обмен картами со следующим игроком. Меняются *{p.user_fullname}* и *{next_player.user_fullname}*")
-        await self.show_give_options(p, next_player, f"*{next_player.user_fullname}* должен получить от вас одну карту. Выбирайте!")
-        await self.show_give_options(next_player, p, f"*{p.user_fullname}* должен получить от вас одну карту, либо защититесь от обмена защитной картой с руки. Выбирайте!")
-        await self.show_table_to_all()
+        p.local_log.append(f"❗️ Меняйтесь картами с *{next_player.user_fullname}*")
+        p.global_log.append(f"💤 Меняется картой с {next_player.user_fullname}")
+
+        next_player.local_log.append(f"❗️ Меняйтесь картами с *{p.user_fullname}*, можно защититься 🛡 от обмена.")
+        next_player.global_log.append(f"💤 Меняется картой с {p.user_fullname}")
+
         exchangers = await asyncio.gather(*[
-            self.show_give_options(p, next_player, f"*{next_player.user_fullname}* должен получить от вас одну карту. Выбирайте!"),
-            self.show_give_options(next_player, p, f"*{p.user_fullname}* должен получить от вас одну карту, либо защититесь от обмена защитной картой с руки. Выбирайте!"),
-            self.show_table_to_all(),
+            self.show_give_options(p, next_player),
+            self.show_give_options(next_player, p),
+            self.show_table_to_all(self.print_hands()),
             self.proccess_exchange(p, next_player),
             self.proccess_exchange(next_player, p)
         ])
@@ -337,26 +359,49 @@ class Game:
         p1.take_on_hand(card2)
         p2.take_on_hand(card1)
 
+        p1.local_log.append(f"🤲 получена `{card2.name}` от *{p2.user_fullname}*")
+        p2.local_log.append(f"🤲 получена `{card1.name}` от *{p1.user_fullname}*")
+        p1.global_log[-1] = f"👌🏻 Поменялся картой с {p2.user_fullname}"
+        p2.global_log[-1] = f"👌🏻 Поменялся картой с {p1.user_fullname}"
+
+
         await self.show_cards(p1)
         await self.show_cards(p2)
-        await self.show_table_to_all()
+        await self.show_table_to_all(self.print_hands())
         return
 
     async def run(self):
         # До старта игры показываем карты игрокам, пишем историю ситуации и ждём, чтобы они прочитали
+        p = None
         await self.show_cards_to_all()
         while not self.board.is_end:
             await asyncio.sleep(0)
-            self.board.next_turn()
+            
+            if p:
+                p.global_log = []
+                p.local_log.append("`----------`")
+                if len(p.local_log) > 10:
+                    for _ in range(0, 5):
+                        p.local_log.pop(0)
+
+            self.board.next_turn()    
             p = self.board.current_player()
+
             # Рисуем стол и очередность в общем чате
-            self.table = self.board.print_hands()
-            await self.show_table_to_all()
+            await self.show_table_to_all(self.print_hands())
             # await self.print_group(self.table)
             # Тянем карту: либо паника и переход хода, либо фаза сыграть карту с руки
+            p.global_log = []
+            if len(p.local_log) > 0:
+                p.local_log.append("`----------`")
+
             if not await self.phase1(p):
+                print("=============================")
+                # self.app.loop.create_task(self.delay_flush(p))
                 continue
             await self.phase2(p)
             await self.phase3(p)
+            # await self.app.loop.create_task(self.delay_flush(p))
+            print("=============================")
         await self.print_group("game ended")
         return

@@ -23,7 +23,7 @@ class EventsQueue:
 
     async def notify_observers(self, msg: Message):
         for observer in self.__observers:
-            print("observer:", observer)
+            # print("observer:", observer)
             await asyncio.sleep(0)
             await observer.update(msg)
         return

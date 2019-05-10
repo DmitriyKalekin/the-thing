@@ -35,22 +35,7 @@ class Board:
         pass
         # for i, p in enumerate(self.players):
 
-    def print_hands(self):
-        output = f"Ход {self.move}, ходит {self.current_player().user_fullname} \r\n"
-        for i, p in enumerate(self.players):
-            turn = "✅" if i == self.turn else "⏳"  # ☣️ # 🤢
-            # output += "```"
-            output += f"{turn} {p.avatar} {p.name}\r\n" 
-            # output += "```"            
-            # for o in p.get_cards_names():
-            #     if o == "Заражение":
-            #         output += "`[`🤢`" + o + "]`; "                                    
-            #     if o == "Нечто":
-            #         output += "`[`🍄`" + o + "]`; "
-            #     else:
-            #         output += "`[" + o + "]`; "
-            output += "`{p.log_state}`\r\n"
-        return output
+
 
     def current_player(self) -> Player:
         """
