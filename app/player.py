@@ -72,10 +72,10 @@ class Player:
         return [c.name for c in self.hand]
 
     def get_possible_play(self):
-        return [c.uuid for c in self.hand if c.is_playable()]
+        return list(set([c.uuid for c in self.hand if c.is_playable()]))
 
     def get_possible_drop(self):
-        return [c.uuid for c in self.hand if c.role not in [Card.ROLE_EVIL]]
+        return list(set([c.uuid for c in self.hand if c.role not in [Card.ROLE_EVIL]]))
 
     def get_possible_give(self, receiver: "Player"):
         wrong_cards = [Card.ROLE_EVIL]
@@ -83,7 +83,7 @@ class Player:
             wrong_cards.append(Card.ROLE_INFECTION)
         if self.is_infected() and not receiver.is_evil():
             wrong_cards.append(Card.ROLE_INFECTION)
-        return [c.uuid for c in self.hand if c.role not in wrong_cards]         
+        return list(set([c.uuid for c in self.hand if c.role not in wrong_cards]))
 
     def search_card_index(self, uuid):
         for i, c in enumerate(self.hand):

@@ -38,9 +38,9 @@ class Board:
     def print_hands(self):
         output = f"Ход {self.move}, ходит {self.current_player().user_fullname} \r\n"
         for i, p in enumerate(self.players):
-            turn = "✅" if i == self.turn else ""
+            turn = "✅" if i == self.turn else "⏳"  # ☣️ # 🤢
             # output += "```"
-            output += f"{p.avatar} {p.name} {turn} `{p.log_state}`\r\n" 
+            output += f"{turn} {p.avatar} {p.name}\r\n" 
             # output += "```"            
             # for o in p.get_cards_names():
             #     if o == "Заражение":
@@ -49,7 +49,7 @@ class Board:
             #         output += "`[`🍄`" + o + "]`; "
             #     else:
             #         output += "`[" + o + "]`; "
-            # output += "\r\n"
+            output += "`{p.log_state}`\r\n"
         return output
 
     def current_player(self) -> Player:

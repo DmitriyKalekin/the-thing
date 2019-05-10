@@ -23,7 +23,7 @@ class Game:
 
     def __init__(self, group_chat_id, app):
         self.group_chat_id = group_chat_id
-        self.players = []
+        self.channels = []
         self.status = Game.STATUS_PENDING
         self.board = None
         self.app = app
@@ -37,57 +37,53 @@ class Game:
         if callback.chat_id not in self.callback_input:
             self.callback_input[callback.chat_id] = []    
         self.callback_input[callback.chat_id].append(callback)
-        print(f"Game {self.group_chat_id} updated", callback, "SENDER_UUID:", callback.sender.id)
-        print("CLB struct:", self.callback_input)
         await asyncio.sleep(0)
         return
 
     def add_player(self, player_id):
-        if player_id not in self.players:
-            self.players.append(player_id)
+        if player_id not in self.channels:
+            self.channels.append(player_id)
 
     def can_start(self) -> bool:
         return True  # TODO: delete
-        return len(self.players) >= Game.MIN_PLAYERS
+        return len(self.channels) >= Game.MIN_PLAYERS
 
     async def start(self):
         if not self.can_start():
             await self.print_group(f"Игра отменена. Требуется минимум {Game.MIN_PLAYERS} игроков")
             self.app["events"].unsubscribe_callback(self.group_chat_id)
-            for p in self.players:
+            for p in self.channels:
                 self.app["events"].unsubscribe_callback(p.user_id, self)    
             return
         await self.print_group(game_info["description"] + game_info["on_start_tip"])        
-        mock_players = self.players
-        # TODO: delete this mock
-        mock_players = [
-            {
-                "group_chat_id": self.group_chat_id,
-                "user_id": 435627225,
-                "user_fullname": "Дмитрий Калекин",
-                "user_alert": "@herr_horror Дмитрий"
-            },
-            {
-                "group_chat_id": self.group_chat_id,
-                "user_id": 435627225,
-                "user_fullname": "Dmitriy Zaytsev",
-                "user_alert": "@1"
-            },
-            {
-                "group_chat_id": self.group_chat_id,
-                "user_id": 435627225,
-                "user_fullname": "Zag",
-                "user_alert": "@2"
-            },
-            {
-                "group_chat_id": self.group_chat_id,
-                "user_id": 435627225,
-                "user_fullname": "Александр Грицай",
-                "user_alert": "@3"
-            }                                     
-        ]
-        self.board = Board(mock_players)
-
+        if self.app["cfg"].DEBUG:
+            self.channels = [
+                {
+                    "group_chat_id": self.group_chat_id,
+                    "user_id": 435627225,
+                    "user_fullname": "Дмитрий Калекин",
+                    "user_alert": "@herr_horror Дмитрий"
+                },
+                {
+                    "group_chat_id": self.group_chat_id,
+                    "user_id": 435627225,
+                    "user_fullname": "Dmitriy Zaytsev",
+                    "user_alert": "@1"
+                },
+                {
+                    "group_chat_id": self.group_chat_id,
+                    "user_id": 435627225,
+                    "user_fullname": "Zag",
+                    "user_alert": "@2"
+                },
+                {
+                    "group_chat_id": self.group_chat_id,
+                    "user_id": 435627225,
+                    "user_fullname": "Александр Грицай",
+                    "user_alert": "@3"
+                }                                     
+            ]
+        self.board = Board(self.channels)
         for p in self.board.players:
             assert type(p) == Player
             self.app["events"].subscribe_callback(p.user_id, self)
@@ -95,7 +91,14 @@ class Game:
 
     # TODO: ------------------------------- refactor -------------------
 
-    async def show_cards(self, p):
+    async def show_cards_to_all(self):
+        if self.app["cfg"].DEBUG:
+            for p in self.board.players:
+                await self.show_cards(p)
+        else:
+            await asyncio.gather(*[self.show_cards(p) for p in self.board.players])
+            
+    async def show_cards(self, p: Player):
         if not p.title_message_id:
             r1 = await self.app["telebot"].sendMessage(p.user_id, f"Ваше имя: *{p.user_fullname}* -------------------------------- ")
             p.title_message_id = r1["result"]["message_id"]
@@ -125,7 +128,7 @@ class Game:
             msg,
             reply_markup={
                 "inline_keyboard": [
-                    *[[{"text": f"🎯 {p.get_card_by_uuid(play_uuid).name}", "callback_data": f"phase2:play_card {play_uuid}"}] for play_uuid in p.get_possible_play()],
+                    *[[{"text": f"▶️ {p.get_card_by_uuid(play_uuid).name}", "callback_data": f"phase2:play_card {play_uuid}"}] for play_uuid in p.get_possible_play()],
                     *[[{"text": f"🗑 {p.get_card_by_uuid(drop_uuid).name}", "callback_data": f"phase2:drop_card {drop_uuid}"}] for drop_uuid in p.get_possible_drop()]
                 ]
                 # 🖐  🕹 Joystick 🗑 Wastebasket ☣ Biohazard 🎮 🎯 Direct Hit
@@ -140,7 +143,7 @@ class Game:
             msg,
             reply_markup={
                 "inline_keyboard": [
-                    *[[{"text": f"🖐 {p.get_card_by_uuid(give_uuid).name}", "callback_data": f"phase3:give_card {give_uuid}"}] for give_uuid in p.get_possible_give(receiver)]
+                    *[[{"text": f"🎁 {p.get_card_by_uuid(give_uuid).name}", "callback_data": f"phase3:give_card {give_uuid}"}] for give_uuid in p.get_possible_give(receiver)]
                 ]
                 #   🕹 Joystick 🗑 Wastebasket ☣ Biohazard 🎮 🎯 Direct Hit
             },
@@ -155,36 +158,23 @@ class Game:
             await asyncio.sleep(1)
             if p.user_id not in self.callback_input:
                 continue
-            print("user_id inside")
             events = self.callback_input[p.user_id]
             index = None
-            print("events =", events)
             for i, clb in enumerate(events):
                 if clb.message_id == p.panel_message_id:
                     index = i
-            print("index =", index)                    
             if index is not None:
                 c = self.callback_input[p.user_id].pop(index)
-                print("GOT", c)
                 return c.data, p
 
     async def clear_input(self, p: Player, msg=""):
         assert p.panel_message_id is not None
         return await self.app["telebot"].editMessageText(p.user_id, p.panel_message_id, msg)       
 
-    async def show_cards_to_all(self):
-        assert type(self.board.players) == list
-        for p in self.board.players:
-            await self.show_cards(p)
-            # self.app.loop.create_task()
-        return
-
     async def show_table_to_all(self):
         self.table = self.board.print_hands()
         assert type(self.board.players) == list
-        for p in self.board.players:
-            await self.show_table(p)
-            # self.app.loop.create_task(self.show_table(p))
+        await asyncio.gather(*[self.show_table(p) for p in self.board.players])
         return  
 
     async def show_table(self, p: Player):
@@ -310,6 +300,19 @@ class Game:
         await self.show_table_to_all()
         return
 
+    async def proccess_exchange(self, p: Player, next_player: Player):
+        full_input, player = await self.listen_input(p)
+        assert player == p
+        cmd, card_uuid = full_input.split(" ")
+        assert cmd == "phase3:give_card"
+        my_card = player.pop_card_by_uuid(int(card_uuid))
+        assert type(my_card) == Card
+        player.log_state = f"поменялся картой"
+        await self.clear_input(player, f"Вы отдали карту {my_card.name}")
+        await self.show_cards(player)
+        await self.show_table_to_all()
+        return player, my_card
+
     async def phase3(self, p: Player):
         next_player = self.board.player_next()
         p.log_state = f"меняется картой с {next_player.user_fullname}"
@@ -318,40 +321,32 @@ class Game:
         await self.show_give_options(p, next_player, f"*{next_player.user_fullname}* должен получить от вас одну карту. Выбирайте!")
         await self.show_give_options(next_player, p, f"*{p.user_fullname}* должен получить от вас одну карту, либо защититесь от обмена защитной картой с руки. Выбирайте!")
         await self.show_table_to_all()
+        exchangers = await asyncio.gather(*[
+            self.show_give_options(p, next_player, f"*{next_player.user_fullname}* должен получить от вас одну карту. Выбирайте!"),
+            self.show_give_options(next_player, p, f"*{p.user_fullname}* должен получить от вас одну карту, либо защититесь от обмена защитной картой с руки. Выбирайте!"),
+            self.show_table_to_all(),
+            self.proccess_exchange(p, next_player),
+            self.proccess_exchange(next_player, p)
+        ])
+        p1, card1 = exchangers[3]
+        p2, card2 = exchangers[4]
+        assert type(p1) == Player
+        assert type(p2) == Player
+        assert type(card1) == Card
+        assert type(card2) == Card
+        p1.take_on_hand(card2)
+        p2.take_on_hand(card1)
 
-        full_input, triggered_player1 = await self.listen_input(p)
-        cmd, card_uuid = full_input.split(" ")
-        assert cmd == "phase3:give_card"
-        my_card = triggered_player1.pop_card_by_uuid(int(card_uuid))
-        assert type(my_card) == Card
-        triggered_player1.log_state = f"поменялся картой"
-        await self.clear_input(triggered_player1, f"Вы отдали карту {my_card.name}")
-        await self.show_cards(triggered_player1)
-        await self.show_table_to_all()
-
-        full_input, triggered_player2 = await self.listen_input(next_player)
-        cmd, card_uuid = full_input.split(" ")
-        assert cmd == "phase3:give_card"
-        his_card = triggered_player2.pop_card_by_uuid(int(card_uuid))
-        assert type(his_card) == Card
-        triggered_player2.log_state = f"поменялся картой"
-        await self.clear_input(triggered_player2, f"Вы отдали карту {his_card.name}")
-        await self.show_cards(triggered_player2)
-        await self.show_table_to_all()
-
-        triggered_player1.take_on_hand(his_card)
-        triggered_player2.take_on_hand(my_card)
-        await self.show_cards(triggered_player1)
-        await self.show_cards(triggered_player2)
+        await self.show_cards(p1)
+        await self.show_cards(p2)
         await self.show_table_to_all()
         return
 
     async def run(self):
         # До старта игры показываем карты игрокам, пишем историю ситуации и ждём, чтобы они прочитали
         await self.show_cards_to_all()
-        await asyncio.sleep(0)
-
         while not self.board.is_end:
+            await asyncio.sleep(0)
             self.board.next_turn()
             p = self.board.current_player()
             # Рисуем стол и очередность в общем чате

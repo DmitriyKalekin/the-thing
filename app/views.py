@@ -5,7 +5,7 @@ from app.telebot import Callback, Message
 
 async def post_index(request):
     r = await request.json()
-    print(r)
+    # print(r)
     if 'callback_query' in r:
         callback = Callback(r)
         assert callback.id is not None

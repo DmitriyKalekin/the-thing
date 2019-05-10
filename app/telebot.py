@@ -65,20 +65,18 @@ class Telebot:
     async def get(self, url, json=dict()) -> dict:
         async with self.session.get(url, json=json) as response:
             r = await response.json()
-            if response.status == 200:
-                return r
-            else:
-                raise Warning(f"GET response.status {response.status} {url} {str(r)}\n\nparams: {str(json)}")
-        return dict()
+            if response.status != 200:
+                pass
+                # raise Warning(f"GET response.status {response.status} {url} {str(r)}\n\nparams: {str(json)}")
+        return r
 
     async def post(self, url, json=dict()) -> dict:
         async with self.session.get(url, json=json) as response:
             r = await response.json()
-            if response.status == 200:
-                return r
-            else:
-                raise Warning(f"POST response.status {response.status} {url} {str(r)}\n\nparams: {str(json)}")
-        return dict()
+            if response.status != 200:
+                pass
+                # raise Warning(f"POST response.status {response.status} {url} {str(r)}\n\nparams: {str(json)}")
+        return r
 
     async def sendMessage(self, chat_id, text, **kwargs) -> dict:
         if "parse_mode" not in kwargs and "@" not in text:
