@@ -27,5 +27,27 @@ def get_group_memgers():
     for m in members:
         # UserStatusOffline
         # UserStatusOnline
-        # UserStatusRecently
+        # UserStatuserecently
         print(m.id, m.bot, m.first_name, m.last_name, m.username, m.status.__class__.__name__)        
+
+
+# def clear(): 
+#     from os import system, name
+#     if name == 'nt': 
+#         _ = system('cls') 
+#     else:
+#         _ = system('clear')
+
+# class Games:
+#     def __init__(self, app):
+#         self.app = app
+#         self._storage = dict()
+
+#     def get_game(self, chat_id: int) -> "Game":
+#         if chat_id < 0:
+#             cur_game = self._storage.get(chat_id, None)
+#             if not cur_game:
+#                 self._storage[chat_id] = Game(chat_id, self.app)
+#             return self._storage[chat_id]
+#         else:
+#             print("Попытка взять игру из индивидуального чата")

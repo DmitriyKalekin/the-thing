@@ -16,7 +16,7 @@ class Card:
         self.name = None 
         self.players = None
         self.images = None
-        self.message_id = None
+        # self.message_id = None
 
         for key in d:
             # assert key in self.__dict__ or key[:3] == "on_", f"{key} not in keys" # 

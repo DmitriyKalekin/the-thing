@@ -11,7 +11,8 @@ class Config:
     API_HASH = CFG_API_HASH
     API_PHONE_NUMBER = CFG_PHONE_NUMBER
     URL = f'https://api.telegram.org/bot{TELEGRAM_KEY}/'
-    WH_URL = f'https://eva-bot.ru:{PORT}/'    
+    WH_URL = f'https://eva-bot.ru:{PORT}/'
+    DEBUG = True    
 
 
 # class LocalConfig:

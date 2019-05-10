@@ -1,7 +1,7 @@
-from game.card import Card
+from app.card import Card
 # import inspect
 # from board import Board
-import random
+# import random
 # from emoji import emojize
 
 
@@ -16,21 +16,27 @@ class Player:
 
     def __init__(self, hand, board, player_info: dict):
         self.title_message_id = None
-        self.hand_message_id = []
+        self.table_message_id = None
         self.panel_message_id = None
+        self.hand_slots = []
+        self.log_message_id = None
+        self.log_state = ""
 
-        self.usr_id = player_info["usr_id"]
-        self.chat_id = player_info["chat_id"]
-        self.name = player_info["usr_fullname"]
-        self.usr_fullname = player_info["usr_fullname"]
-        self.usr_alert = player_info["usr_alert"] 
-        self.uuid = str(player_info["usr_id"]) + str(player_info["chat_id"]) + self.usr_alert
+        self.user_id = player_info["user_id"]
+        self.group_chat_id = player_info["group_chat_id"]
+        self.name = player_info["user_fullname"]
+        self.user_fullname = player_info["user_fullname"]
+        self.user_alert = player_info["user_alert"] 
+        self.uuid = str(player_info["user_id"]) + str(player_info["group_chat_id"]) + self.user_alert
         self.hand = hand
         self.board = board
         self.side = Player.GOOD
         self.update_player_side()
         self.avatar = "😺"
         self.set_avatar()
+
+    def __repr__(self):
+        return "<Player: %s, user_id=%s, uuid=%s>" % (self.user_fullname, self.user_id, self.uuid)  # self.__dict__           
 
     def set_avatar(self):
         avatars = {
@@ -51,7 +57,7 @@ class Player:
             "Александр Грицай": "👶",
             "Dmitriy Zaytsev": "👨"
         }
-        ava = avatars.get(self.usr_fullname, "😺")
+        ava = avatars.get(self.user_fullname, "😺")
         if self.side == Player.EVIL:
             ava = "👾"
         self.avatar = ava
@@ -92,6 +98,16 @@ class Player:
                 return c
         return None
 
+    def pop_card_by_uuid(self, uuid):
+        for i, c in enumerate(self.hand):
+            if c.uuid == uuid:
+                # for j, s in enumerate(self.hand_slots):
+                #     if s["card"] and s["card"].uuid == c.uuid:
+                #         assert type(s["card"]) == Card
+                #         self.hand_slots[j]["card"] = None
+                return self.hand.pop(i)
+        return None        
+
     def is_good(self):
         return self.side == Player.GOOD
 
@@ -112,7 +128,10 @@ class Player:
         return self.board.deck.pop(0)   
 
     def take_on_hand(self, card):
-        self.hand.append(card)   
+        self.hand.append(card)
+        # for j, s in enumerate(self.hand_slots):
+        #     if not s["card"]:
+        #         self.hand_slots[j]["card"] = card 
         print("Карта добавлена на руку:", card.name)  
 
     def accept_card(self, card: Card, sender: "Player"):
@@ -134,31 +153,31 @@ class Player:
     def choose_card(self, reason):
         pass
 
-    def swap_cards(self, card: Card, receiver: "Player"):
-        # Люди не могут передавать заражение
-        # assert not (sender.side == Player.GOOD and card_sender.role == Card.ROLE_INFECTION)
-        # assert not (receiver.side == Player.GOOD and card_receiver.role == Card.ROLE_INFECTION)
-        # # Зараженный не может передавать человеку или зараженному (только Нечто может)
-        # assert not (sender.side == Player.BAD and card_sender.role == Card.ROLE_INFECTION and receiver.side in [Player.GOOD, Player.BAD])
-        # assert not (receiver.side == Player.BAD and card_receiver.role == Card.ROLE_INFECTION and sender.side in [Player.GOOD, Player.BAD])
+    # def swap_cards(self, card: Card, receiver: "Player"):
+    #     # Люди не могут передавать заражение
+    #     # assert not (sender.side == Player.GOOD and card_sender.role == Card.ROLE_INFECTION)
+    #     # assert not (receiver.side == Player.GOOD and card_receiver.role == Card.ROLE_INFECTION)
+    #     # # Зараженный не может передавать человеку или зараженному (только Нечто может)
+    #     # assert not (sender.side == Player.BAD and card_sender.role == Card.ROLE_INFECTION and receiver.side in [Player.GOOD, Player.BAD])
+    #     # assert not (receiver.side == Player.BAD and card_receiver.role == Card.ROLE_INFECTION and sender.side in [Player.GOOD, Player.BAD])
 
-        # if sender.side==Player.EVIL and card_sender.role == Card.ROLE_INFECTION:
-        #     receiver.side = Player.BAD
-        #     print(f"Игрок {receiver.name} заразился")
+    #     # if sender.side==Player.EVIL and card_sender.role == Card.ROLE_INFECTION:
+    #     #     receiver.side = Player.BAD
+    #     #     print(f"Игрок {receiver.name} заразился")
 
-        # if receiver.side==Player.EVIL and card_receiver.role == Card.ROLE_INFECTION:
-        #     sender.side = Player.BAD
-        #     print(f"Игрок {sender.name} заразился")  
+    #     # if receiver.side==Player.EVIL and card_receiver.role == Card.ROLE_INFECTION:
+    #     #     sender.side = Player.BAD
+    #     #     print(f"Игрок {sender.name} заразился")  
 
-        # sender.hand.append(card_receiver)
-        # receiver.hand.append(card_sender) 
-        his_possible = receiver.get_possible_give(self)
-        his_choice_uuid = random.choice(his_possible)
-        his_card = receiver.hand.pop(receiver.search_card_index(his_choice_uuid))
+    #     # sender.hand.append(card_receiver)
+    #     # receiver.hand.append(card_sender) 
+    #     his_possible = receiver.get_possible_give(self)
+    #     his_choice_uuid = random.choice(his_possible)
+    #     his_card = receiver.hand.pop(receiver.search_card_index(his_choice_uuid))
 
-        self.accept_card(his_card, receiver)
-        receiver.accept_card(card, self)        
-        print(f"Вы дали карту: {card.name}, а получили {his_card.name}")
+    #     self.accept_card(his_card, receiver)
+    #     receiver.accept_card(card, self)        
+    #     print(f"Вы дали карту: {card.name}, а получили {his_card.name}")
 
     def drop_card(self, card: Card):
         self.board.deck.append(card)

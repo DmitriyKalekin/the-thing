@@ -1,3 +1,62 @@
+class User:
+    def __init__(self, d: dict):
+        self.id = None
+        self.is_bot = None
+        self.first_name = None
+        self.last_name = None
+        self.username = None
+        for k, v in d.items():
+            if k not in self.__dict__:
+                continue
+            setattr(self, k, v) 
+
+
+class Message:
+    def __init__(self, d: dict):
+        self.id = None
+        self.sender = None 
+        self.chat_id = None
+        self.text = ""
+        assert d["message"] is not None       
+        for k, v in d["message"].items():
+            if k == "from": 
+                k = "sender"
+                v = User(v)
+            elif k == "chat":
+                k = "chat_id"
+                v = v["id"]
+            elif k == "message_id":
+                k = "id"
+            elif k not in self.__dict__:
+                continue                 
+            setattr(self, k, v) 
+
+
+class Callback:
+    def __init__(self, d: dict):
+        self.id = None
+        self.sender = None 
+        self.chat_id = None
+        self.message_id = None
+        self.data = ""
+        assert d["callback_query"] is not None       
+        for k, v in d["callback_query"].items():
+            if k == "from": 
+                k = "sender"
+                v = User(v)
+            elif k == "message":
+                self.chat_id = v["chat"]["id"]
+                self.message_id = v["message_id"]
+                # k = "chat_id"
+                # v = v["chat"]["id"]
+            elif k not in self.__dict__:
+                continue 
+            setattr(self, k, v)   
+    
+    def __repr__(self):
+        return "<Callback: %s, chat_id=%s, message_id=%s>" % (self.data, self.chat_id, self.message_id)  # self.__dict__           
+
+
 class Telebot:
     def __init__(self, url, session):
         self.url = url
@@ -22,6 +81,8 @@ class Telebot:
         return dict()
 
     async def sendMessage(self, chat_id, text, **kwargs) -> dict:
+        if "parse_mode" not in kwargs and "@" not in text:
+            kwargs["parse_mode"] = "markdown"        
         url = self.url + 'sendMessage'
         params = {'chat_id': chat_id, 'text': text,  **kwargs}
         return await self.post(url, params)
@@ -79,6 +140,8 @@ class Telebot:
         return await self.post(url, params)
 
     async def editMessageText(self, chat_id, message_id, text, **kwargs) -> dict:
+        if "parse_mode" not in kwargs and "@" not in text:
+            kwargs["parse_mode"] = "markdown"        
         url = self.url + 'editMessageText'
         params = {'chat_id': chat_id, 'message_id': message_id, 'text': text, **kwargs}
         return await self.post(url, params)

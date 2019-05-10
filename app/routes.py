@@ -1,4 +1,4 @@
-from api.views import (
+from app.views import (
     set_wh, del_wh, start_job, get_wh, post_index
 )
 

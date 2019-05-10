@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+app/deck_normal.py
+__conf__/
+__config__/
 __docs__/
 __src__/
 res/
