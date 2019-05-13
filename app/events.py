@@ -32,7 +32,6 @@ class EventsQueue:
         await asyncio.sleep(0)
         key_id = callback.chat_id
         game = self.__callbacks.get(key_id, None)
-        print(self.__callbacks)
         if game:
             assert type(game) == Game
             await game.update_callback(callback)

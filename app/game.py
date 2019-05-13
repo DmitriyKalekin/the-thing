@@ -30,9 +30,8 @@ class Game:
         self.app = app
         self.app["events"].subscribe_callback(self.group_chat_id, self)
         self.callback_input = dict()
-        self.table = "```Здесь отобразится стол```"        
-        self.log = ["```Здесь лог событий```"]
-        self.view = None
+        # self.table = "```Здесь отобразится стол```"        
+        self.view = GameView(self)
 
     async def update_callback(self, callback: Callback):
         assert type(callback.sender) == User
@@ -42,7 +41,11 @@ class Game:
         await asyncio.sleep(0)
         return
 
-    async def listen_input(self, p: Player):
+    async def clear_input(self, p: Player):
+        assert p.panel_message_id is not None
+        return await self.app["telebot"].editMessageText(p.user_id, p.panel_message_id, "\r\n".join(p.local_log)) 
+
+    async def input(self, p: Player):
         while True:
             await asyncio.sleep(1)
             if p.user_id not in self.callback_input:
@@ -54,7 +57,8 @@ class Game:
                     index = i
             if index is not None:
                 c = self.callback_input[p.user_id].pop(index)
-                return c.data, p        
+                await self.clear_input(p)
+                return c.data.split(" ")        
 
     def add_player(self, player_id):
         if player_id not in self.channels:
@@ -66,12 +70,12 @@ class Game:
 
     async def start(self):
         if not self.can_start():
-            await self.print_group(f"Игра отменена. Требуется минимум {Game.MIN_PLAYERS} игроков")
+            await self.view.print_group(f"Игра отменена. Требуется минимум {Game.MIN_PLAYERS} игроков")
             self.app["events"].unsubscribe_callback(self.group_chat_id)
             for p in self.channels:
                 self.app["events"].unsubscribe_callback(p.user_id, self)    
             return
-        await self.print_group(game_info["description"] + game_info["on_start_tip"])        
+        await self.view.print_group(game_info["description"] + game_info["on_start_tip"])        
         if self.app["cfg"].DEBUG:
             self.channels = [
                 {
@@ -100,7 +104,7 @@ class Game:
                 }                                     
             ]
         self.board = Board(self.channels)
-        self.view = GameView(self.board, self.app["telebot"], self.app["cfg"])
+        self.view.init()
         for p in self.board.players:
             assert type(p) == Player
             p.init(self.view, self)
@@ -111,12 +115,13 @@ class Game:
 
     async def run(self):
         # До старта игры показываем карты игрокам, пишем историю ситуации и ждём, чтобы они прочитали
-        p = None
-        await self.show_cards_to_all()
+        assert len(self.board.players) > 0
+        p = self.board.next_turn()
+        await self.view.show_cards_to_all()
+        
         while not self.board.is_end:
             await asyncio.sleep(0)
-            self.board.next_turn()    
-            p = self.board.player_next(p)
+            p.global_log = []
             # Рисуем стол и очередность в общем чате
             await self.view.show_table_to_all()
             if not await p.phase1():
@@ -127,7 +132,10 @@ class Game:
             await p.phase2_end()
 
             next_player = self.board.player_next(p)
-            await p.phase3_prepare(p, next_player)
-            await p.phase3()
-        await self.print_group("game ended")
+            await p.phase3_prepare(next_player)
+            await p.phase3(next_player)
+
+            p.global_log = []
+            p = self.board.next_turn()
+        await self.view.print_group("game ended")
         return

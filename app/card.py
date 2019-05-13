@@ -8,6 +8,8 @@ class Card:
     ROLE_INFECTION = "infection"
     ROLE_EVIL = "the-thing"
 
+    PLAY_PERSON = "on_played_to_person"
+
     def __init__(self, d: dict):
         self.uuid = None
         self.role = None
@@ -19,11 +21,16 @@ class Card:
         # self.message_id = None
 
         for key in d:
+            if key[1] == "_":
+                continue
+
             # assert key in self.__dict__ or key[:3] == "on_", f"{key} not in keys" # 
-            if key in self.__dict__:
-                setattr(self, key, d[key]) 
-            elif key[:3] == "on_":
+            # if key in self.__dict__:
+            
+            if key[:3] == "on_":
                 setattr(self, key, types.MethodType(d[key], self))
+            else:
+                setattr(self, key, d[key]) 
 
     def __repr__(self):
         return "<Card: %s, uuid=%s>" % (self.name, self.uuid)  # self.__dict__            

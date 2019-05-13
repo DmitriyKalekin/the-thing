@@ -26,6 +26,7 @@ class Board:
         self.move = 0   # Номер ходя по порядку
         self.is_end = False
         self.turn_sequence = 1  # -1
+        self.current_player = self.players[0]
 
     def get_player(self, uuid):
         for u in self.players:
@@ -36,11 +37,11 @@ class Board:
         pass
         # for i, p in enumerate(self.players):
 
-    def current_player(self) -> Player:
-        """
-        Возвращает текущего игрока
-        """
-        return self.players[self.turn]
+    # def current_player(self) -> Player:
+    #     """
+    #     Возвращает текущего игрока
+    #     """
+    #     return self.players[self.turn]
     
     def player_before(self):
         if self.turn-1 < 0:
@@ -51,7 +52,25 @@ class Board:
         if self.turn+1 > len(self.players)-1:
             return self.players[0]
         return self.players[self.turn+1]
-    
+
+    def player_by_uuid(self, uuid):
+        return next(p for p in self.players if p.uuid == uuid)
+
+    def player_prev(self, p):
+        """
+        Возвращает следующего игрока в зависимости от направления очередности
+        """
+        assert len(self.players) > 0
+        if not p:
+            return self.players[0]
+        iterator = self.players if self.turn_sequence < 0 else reversed(self.players)
+        iterator = cycle(iterator)
+        for cp in iterator:
+            if cp == p:
+                return next(iterator)
+        return None
+
+
     def player_next(self, p):
         """
         Возвращает следующего игрока в зависимости от направления очередности
@@ -61,8 +80,10 @@ class Board:
             return self.players[0]
         iterator = self.players if self.turn_sequence > 0 else reversed(self.players)
         iterator = cycle(iterator)
-        return next((next(_ for _ in iterator if _ == p)))
-
+        for cp in iterator:
+            if cp == p:
+                return next(iterator)
+        return None  # TODO: игрок может убиться - будет проблема
         # index = self.turn + self.turn_sequence
         # if index > len(self.players)-1:
         #     index = 0
@@ -70,7 +91,7 @@ class Board:
         #     index = len(self.players)-1 
         # return self.players[index]
     
-    def next_turn(self, p):
+    def next_turn(self):
         """
         Переход хода в зависимости от направления очередности
         """
@@ -78,8 +99,13 @@ class Board:
         # if self.turn > len(self.players)-1:
         #     self.turn = 0
         # if self.turn < 0:
-        #     self.turn = len(self.players)-1        
+        #     self.turn = len(self.players)-1 
+        if self.move == 0:
+            self.current_player = self.player_next(None)
+        else:
+            self.current_player = self.player_next(self.current_player)
         self.move += 1
+        return self.current_player
         
     def load_cards(self, card_deck_struct, n):
         """

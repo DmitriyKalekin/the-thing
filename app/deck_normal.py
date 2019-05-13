@@ -30,18 +30,28 @@ game_info = { # приоритизация
 }
 
 
-def evil____on_taken(self, p:Player):
+def evil____on_taken(self, p: Player):
+    print(f"!!! {p.name} стал Нечто")
     p.become_evil()
 
-def infection____on_accepted(self, p:Player, sender: Player):
+
+def infection____on_given(self, p: Player, sender: Player):
     assert self.is_infection(), "Текущая карта - заражение"
     assert sender.is_evil() or p.is_evil() and sender.is_infected(), "Либо нечто передаёт, либо мы сами нечто и нам передаёт заражённый"
     assert not sender.is_good(), "Люди не могут передавать заражение"
     assert not (sender.is_infected() and (p.is_good() or p.is_infected())), "Зараженный не может передавать человеку или зараженному (только Нечто может)"
+    print("!!! Заражение принято ")
     p.become_infected()
     # super(Card, self).on_received(p, sender)
 
-def flamethrower____on_played(self, p:Player, target: Player):
+
+def flamethrower____on_played_to_person(self, p: Player, target: Player):
+    print(f"{p.name} сыграл. Огнёмет сыгран на игрока", target.name)
+    pass
+
+
+def blood_test____on_played_to_person(self, p: Player, target: Player):
+    print("Анализ сыгран на игрока", target.name)
     pass
 
 
@@ -69,7 +79,7 @@ card_deck_struct = [
             "green-infection-3",
             "green-infection-4"
         ],
-        "on_accepted": infection____on_accepted
+        "on_given": infection____on_given
     },
     {
         "_uuids": [22, 23, 24, 25, 26],
@@ -79,7 +89,8 @@ card_deck_struct = [
         "name": "Огнемёт",
         "_players": [4, 4, 6, 9, 11],
         "images": ["green-flamethrower"],
-        "on_played": flamethrower____on_played
+        "on_played_to_person": flamethrower____on_played_to_person,
+        "person_target": ["next", "prev"]
     },
     {
         "_uuids": [27, 28, 29],
@@ -89,6 +100,8 @@ card_deck_struct = [
         "name": "Анализ",
         "_players": [5, 6, 9],
         "images": ["green-blood-test"],
+        "on_played_to_person": blood_test____on_played_to_person,
+        "person-target": ["next", "prev"]
         
     },
     {

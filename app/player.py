@@ -1,5 +1,6 @@
 from app.card import Card
 import asyncio
+import uuid
 # import inspect
 # from board import Board
 # import random
@@ -29,7 +30,7 @@ class Player:
         self.name = player_info["user_fullname"]
         self.user_fullname = player_info["user_fullname"]
         self.user_alert = player_info["user_alert"] 
-        self.uuid = str(player_info["user_id"]) + str(player_info["group_chat_id"]) + self.user_alert
+        self.uuid = str(uuid.uuid4())
         self.hand = hand
         self.board = board
         self.game = None
@@ -100,7 +101,6 @@ class Player:
 
     async def phase2_end(self):
         await asyncio.gather(*[
-            self.view.clear_input(self),
             self.view.show_cards(self),
             self.view.show_table_to_all()
         ])
@@ -109,15 +109,18 @@ class Player:
         """
         Фаза сброса или игры карты с руки
         """
-        full_input, triggered_player = await self.game.listen_input(self)
-        cmd, card_uuid = full_input.split(" ")
+        cmd, card_uuid = await self.game.input(self)
         assert cmd in ["phase2:play_card", "phase2:drop_card"]
-        assert triggered_player == self
-
         card = self.pop_card_by_uuid(int(card_uuid))  # выбранная карта
         assert type(card) == Card
         if cmd == "phase2:play_card":
-            self.play_card(card, target=None)
+            if Card.PLAY_PERSON in card.__dict__:
+                await self.view.show_player_target(self, card)
+                cmd, p_uuid = await self.game.input(self)
+                assert cmd == "phase2:play_card/player"
+                self.play_card(card, target=self.board.player_by_uuid(p_uuid))
+            else:
+                self.play_card(card, target=None)
             self.board.deck.append(card)
         else:
             assert cmd == "phase2:drop_card"
@@ -155,9 +158,7 @@ class Player:
         return
 
     async def proccess_exchange(self, next_player: "Player"):
-        full_input, player = await self.game.listen_input(self)
-        assert player == self
-        cmd, card_uuid = full_input.split(" ")
+        cmd, card_uuid = await self.game.input(self)
         # BUG: assertion error here
         assert cmd in ["phase3:give_card", "phase3:block_exchange_card"]
         my_card = self.pop_card_by_uuid(int(card_uuid))
@@ -170,9 +171,6 @@ class Player:
             assert cmd == "phase3:block_exchange_card"
             self.local_log[-1] = f"🛡 сыграна защита `{my_card.name}` от *{next_player.user_fullname}*"        
             self.global_log[-1] = f"🛡 Защитился `{my_card.name}` от обмена с {next_player.user_fullname}"
-
-        await self.view.clear_input(self)
-        
         return self, my_card
 
     def update_player_side(self):
@@ -205,15 +203,14 @@ class Player:
                 break
         return kill_em
 
+    def is_quarantined(self):
+        return False
+
     def get_possible_drop(self):
         result = []
-        print("============ анализирую дроп ........")
-        print(f"{self.name}:", self.is_infected())
         for c in self.hand:
-            print("Текущая карта:", c.name)
             # именно одну карту заражения нельзя скидывать - т.е. одна всегда пропустится и останется на руке
             if self.is_infected() and self.cnt_infection() == 1 and c.is_infection():
-                print("Заражен, количество заражений = 1, и карта заражения")
                 continue
             if c.role not in [*[_.role for _ in result], Card.ROLE_EVIL]:
                 result.append(c)
@@ -302,7 +299,7 @@ class Player:
         # for j, s in enumerate(self.hand_slots):
         #     if not s["card"]:
         #         self.hand_slots[j]["card"] = card 
-        print("Карта добавлена на руку:", card.name)  
+        print(f"{self.name}: Карта добавлена на руку:", card.name)  
         await self.view.show_cards(self)
 
     def accept_card(self, card: Card, sender: "Player"):
@@ -321,7 +318,12 @@ class Player:
         assert target is None or target.__class__.__name__ == "Player"
         self.local_log[-1] = f"▶️ сыграна `{card.name}`"
         self.global_log[-1] = f"▶️ Сыграл карту `{card.name}`"
-        print(f"Вы сыграли карту {card.name}")
+        print(f"{self.name} сыграл карту {card.name}")
+
+        if target.__class__.__name__ == "Player" and Card.PLAY_PERSON in card.__dict__:
+            card.on_played_to_person(self, target)
+
+
 
     def play_panic(self, card: Card):
         self.local_log.append(f"🔥 паника `{card.name}` с колоды, ход завершён.")

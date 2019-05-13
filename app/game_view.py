@@ -9,10 +9,14 @@ from random import choice
 
 
 class GameView:
-    def __init__(self, board, t, cfg):
-        self.board = board
-        self.t = t
-        self.cfg = cfg
+    def __init__(self, game):
+        self.game = game
+        self.t = game.app["telebot"]
+        self.cfg = game.app["cfg"]
+        self.group_chat_id = self.game.group_chat_id
+
+    def init(self):
+        self.board = self.game.board
 
     async def show_cards_to_all(self):
         if self.cfg.DEBUG:
@@ -27,7 +31,7 @@ class GameView:
         #     p.title_message_id = r1["result"]["message_id"]
         
         if not p.table_message_id:
-            r2 = await self.t.sendMessage(p.user_id, self.table)
+            r2 = await self.t.sendMessage(p.user_id, self.print_hands(p))
             p.table_message_id = r2["result"]["message_id"]
         
         if not p.hand_slots or len(p.hand_slots) == 0:
@@ -40,10 +44,7 @@ class GameView:
             p.panel_message_id = r3["result"]["message_id"]
         else:
             await self.t.editMessageText(p.user_id, p.panel_message_id, "\r\n".join(p.local_log))
-        
-        if not p.log_message_id:
-            r4 = await self.t.sendMessage(p.user_id, "\n".join(self.log))
-            p.log_message_id = r4["result"]["message_id"]        
+     
         return
 
     async def show_play_drop_options(self, p):
@@ -59,7 +60,38 @@ class GameView:
                 # 🖐  🕹 Joystick 🗑 Wastebasket ☣ Biohazard 🎮 🎯 Direct Hit
             },
             parse_mode="markdown"  
-        )    
+        )
+
+    async def show_player_target(self, p, card: Card):
+        assert type(card.person_target) == list
+
+        candidates = []
+        for pt in card.person_target:
+            if pt == "self":
+                if not p.is_quarantined():
+                    candidates.append(p)
+            if pt == "next":
+                next_player = self.game.board.player_next(p)
+                if not p.is_quarantined() and not next_player.is_quarantined():
+                    candidates.append(next_player)
+            if pt == "prev":
+                prev_player = self.game.board.player_prev(p)
+                if not p.is_quarantined() and not prev_player.is_quarantined():
+                    candidates.append(prev_player)
+
+        await self.t.editMessageText(
+            p.user_id,
+            p.panel_message_id,
+            "\r\n".join(p.local_log),
+            reply_markup={
+                "inline_keyboard": [
+                    *[[{"text": f"🎯 {p.name}", "callback_data": f"phase2:play_card/player {p.uuid}"}] for p in candidates],
+                ]
+                # 🖐  🕹 Joystick 🗑 Wastebasket ☣ Biohazard 🎮 🎯 Direct Hit
+            },
+            parse_mode="markdown"  
+        )        
+
 
     async def show_give_options(self, p, receiver, can_def=False):
         def_buttons = []
@@ -83,10 +115,6 @@ class GameView:
     async def print_group(self, msg: str, **kwargs):
         return await self.t.sendMessage(self.group_chat_id, msg, **kwargs)
 
-    async def clear_input(self, p: Player):
-        assert p.panel_message_id is not None
-        return await self.t.editMessageText(p.user_id, p.panel_message_id, "\r\n".join(p.local_log))       
-
     async def show_log_to_all(self, msg: str):
         self.log.append(msg)
         while len(self.log) > 6:
@@ -104,7 +132,6 @@ class GameView:
         """
         Создаём слоты для изображений 
         """
-        
         top_card_image = "https://eva-bot.ru/res/normal/min/top-card-950x1343-min.png"
         media = list([f"https://eva-bot.ru/res/normal/min/{choice(h.images)}-950x1343-min.png" for h in p.hand])
         if len(media) < 5:
@@ -123,7 +150,7 @@ class GameView:
             assert type(card) == Card
             image = f"https://eva-bot.ru/res/normal/min/{choice(card.images)}-950x1343-min.png"
             try:
-                self.app.loop.create_task(
+                self.game.app.loop.create_task(
                     self.t.editMessageMedia(p.user_id, p.hand_slots[counter], {"type": "photo", "media": image})
                 )
             except Warning:
@@ -133,18 +160,18 @@ class GameView:
         for i in range(counter, len(p.hand_slots)):
             image = "https://eva-bot.ru/res/normal/min/top-card-950x1343-min.png"
             try:
-                self.app.loop.create_task(
+                self.game.app.loop.create_task(
                     self.t.editMessageMedia(p.user_id, p.hand_slots[counter], {"type": "photo", "media": image})
                 )
             except Warning:
                 print(f"Изображение осталось старым: top-card")            
 
     def print_hands(self, player: Player):
-        output = f"Ход {self.board.move}, ходит *{self.board.current_player().user_fullname}* \r\n"
+        output = f"Ход {self.board.move}, ходит *{self.board.current_player.user_fullname}* \r\n"
         for i, p in enumerate(self.board.players):
             turn = "✅" if i == self.board.turn else "⏳"  # ☣️ # 🤢
             # output += "```"
-            name = f"*{p.name}*" if p == self.board.current_player() else p.name
+            name = f"*{p.name}*" if p == self.board.current_player else p.name
             output += f"{turn} {p.avatar} {name}\r\n" 
             # output += "```"            
             # for o in p.get_cards_names():
@@ -162,11 +189,11 @@ class GameView:
 
     async def show_table_to_all(self):
         assert type(self.board.players) == list
-        await asyncio.gather(*[self.show_table(p, self.print_hands(p)) for p in self.board.players])
+        await asyncio.gather(*[self.show_table(p) for p in self.board.players])
         return  
 
-    async def show_table(self, p: Player, table: str):
+    async def show_table(self, p: Player):
         try:
-            await self.t.editMessageText(p.user_id, p.table_message_id, table)
+            await self.t.editMessageText(p.user_id, p.table_message_id, self.print_hands(p))
         except Warning:
             print("Стол остался прежним")
