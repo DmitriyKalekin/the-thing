@@ -28,6 +28,15 @@ class Card:
     def __repr__(self):
         return "<Card: %s, uuid=%s>" % (self.name, self.uuid)  # self.__dict__            
 
+    def is_def_exchange(self):
+        return self.role in ["fear", "no-thanks", "miss"]
+
+    def is_def_flamethrower(self):
+        return self.role in ["no-bbq"]
+
+    def is_def_change_place(self):
+        return self.role in ["not-bad-here"]
+
     def is_infection(self):
         return self.role == Card.ROLE_INFECTION
 

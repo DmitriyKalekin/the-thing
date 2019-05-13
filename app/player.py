@@ -73,10 +73,44 @@ class Player:
         return [c.name for c in self.hand]
 
     def get_possible_play(self):
-        return list(set([c.uuid for c in self.hand if c.is_playable()]))
+        result = []
+        for c in self.hand:
+            if c.is_playable() and c.role not in [_.role for _ in result]:
+                result.append(c)
+        return result
+
+    def cnt_infection(self):
+        cnt = 0
+        for c in self.hand:
+            if c.is_infection():
+                cnt += 1
+        return cnt
+
+    def is_fully_infected(self):
+        kill_em = True
+        for c in self.hand:
+            if not c.is_infection():
+                kill_em = False
+                break
+        return kill_em
 
     def get_possible_drop(self):
-        return list(set([c.uuid for c in self.hand if c.role not in [Card.ROLE_EVIL]]))
+        result = []
+        print("============ анализирую дроп ........")
+        print(f"{self.name}:", self.is_infected())
+        for c in self.hand:
+            print("Текущая карта:", c.name)
+            # именно одну карту заражения нельзя скидывать - т.е. одна всегда пропустится и останется на руке
+            if self.is_infected() and self.cnt_infection() == 1 and c.is_infection():
+                print("Заражен, количество заражений = 1, и карта заражения")
+                continue
+            if c.role not in [*[_.role for _ in result], Card.ROLE_EVIL]:
+                result.append(c)
+        # Запрещаем скидывать нормальную карту
+        # чтобы не допустить случая, когда все карты на руке - заражение
+        if not self.is_evil() and len(self.hand) == 5 and self.cnt_infection() == 4:
+            return [next(c for c in result if c.is_infection())]
+        return result        
 
     def get_possible_give(self, receiver: "Player"):
         wrong_cards = [Card.ROLE_EVIL]
@@ -84,7 +118,21 @@ class Player:
             wrong_cards.append(Card.ROLE_INFECTION)
         if self.is_infected() and not receiver.is_evil():
             wrong_cards.append(Card.ROLE_INFECTION)
-        return list(set([c.uuid for c in self.hand if c.role not in wrong_cards]))
+        if self.is_infected() and receiver.is_evil() and self.cnt_infection() == 1:
+            wrong_cards.append(Card.ROLE_INFECTION)
+
+        result = []
+        for c in self.hand:
+            if c.role not in [*[_.role for _ in result], *wrong_cards]:
+                result.append(c)               
+        return result
+
+    def get_possible_block_exchange(self):
+        result = []
+        for c in self.hand:
+            if c.role not in [_.role for _ in result] and c.is_def_exchange():
+                result.append(c)               
+        return result
 
     def search_card_index(self, uuid):
         for i, c in enumerate(self.hand):
@@ -128,8 +176,11 @@ class Player:
     def pull_deck(self) -> Card:
         return self.board.deck.pop(0)   
 
-    def take_on_hand(self, card):
+    def take_on_hand(self, card, sender=None):
         self.hand.append(card)
+
+        if sender and sender.is_evil() and card.role == Card.ROLE_INFECTION and not self.is_evil():
+            self.become_infected()
         # for j, s in enumerate(self.hand_slots):
         #     if not s["card"]:
         #         self.hand_slots[j]["card"] = card 
@@ -139,6 +190,9 @@ class Player:
         self.hand.append(card)
         card.on_accepted(self, sender)
         return
+
+    def print_log(self, msg, last=False):
+        pass
 
     def play_card(self, card: Card, target=None):
         """
