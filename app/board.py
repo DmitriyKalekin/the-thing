@@ -3,6 +3,7 @@ from app.player import Player
 from app.card import Card
 from app.misc import chunks
 from app.deck_normal import card_deck_struct
+from itertools import cycle
 
 
 class Board:
@@ -35,8 +36,6 @@ class Board:
         pass
         # for i, p in enumerate(self.players):
 
-
-
     def current_player(self) -> Player:
         """
         Возвращает текущего игрока
@@ -53,26 +52,33 @@ class Board:
             return self.players[0]
         return self.players[self.turn+1]
     
-    def player_next(self):
+    def player_next(self, p):
         """
         Возвращает следующего игрока в зависимости от направления очередности
         """
-        index = self.turn + self.turn_sequence
-        if index > len(self.players)-1:
-            index = 0
-        if index < 0:
-            index = len(self.players)-1 
-        return self.players[index]
+        assert len(self.players) > 0
+        if not p:
+            return self.players[0]
+        iterator = self.players if self.turn_sequence > 0 else reversed(self.players)
+        iterator = cycle(iterator)
+        return next((next(_ for _ in iterator if _ == p)))
+
+        # index = self.turn + self.turn_sequence
+        # if index > len(self.players)-1:
+        #     index = 0
+        # if index < 0:
+        #     index = len(self.players)-1 
+        # return self.players[index]
     
-    def next_turn(self):
+    def next_turn(self, p):
         """
         Переход хода в зависимости от направления очередности
         """
-        self.turn += self.turn_sequence
-        if self.turn > len(self.players)-1:
-            self.turn = 0
-        if self.turn < 0:
-            self.turn = len(self.players)-1        
+        # self.turn += self.turn_sequence
+        # if self.turn > len(self.players)-1:
+        #     self.turn = 0
+        # if self.turn < 0:
+        #     self.turn = len(self.players)-1        
         self.move += 1
         
     def load_cards(self, card_deck_struct, n):
