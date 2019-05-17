@@ -92,7 +92,6 @@ class GameView:
             parse_mode="markdown"  
         )        
 
-
     async def show_give_options(self, p, receiver, can_def=False):
         def_buttons = []
         if can_def:

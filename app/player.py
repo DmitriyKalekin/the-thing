@@ -1,4 +1,4 @@
-from app.card import Card
+from app.card import Card, CardInfection, CardEvil
 import asyncio
 import uuid
 # import inspect
@@ -184,7 +184,7 @@ class Player:
     def get_possible_play(self):
         result = []
         for c in self.hand:
-            if c.is_playable() and c.role not in [_.role for _ in result]:
+            if c.is_playable() and type(c) not in [type(_) for _ in result]:
                 result.append(c)
         return result
 
@@ -212,7 +212,7 @@ class Player:
             # именно одну карту заражения нельзя скидывать - т.е. одна всегда пропустится и останется на руке
             if self.is_infected() and self.cnt_infection() == 1 and c.is_infection():
                 continue
-            if c.role not in [*[_.role for _ in result], Card.ROLE_EVIL]:
+            if type(c) not in [*[type(_) for _ in result], CardEvil]:
                 result.append(c)
         # Запрещаем скидывать нормальную карту
         # чтобы не допустить случая, когда все карты на руке - заражение
@@ -221,24 +221,24 @@ class Player:
         return result        
 
     def get_possible_give(self, receiver: "Player"):
-        wrong_cards = [Card.ROLE_EVIL]
+        wrong_cards = [CardEvil]
         if self.is_good():
-            wrong_cards.append(Card.ROLE_INFECTION)
+            wrong_cards.append(CardInfection)
         if self.is_infected() and not receiver.is_evil():
-            wrong_cards.append(Card.ROLE_INFECTION)
+            wrong_cards.append(CardInfection)
         if self.is_infected() and receiver.is_evil() and self.cnt_infection() == 1:
-            wrong_cards.append(Card.ROLE_INFECTION)
+            wrong_cards.append(CardInfection)
 
         result = []
         for c in self.hand:
-            if c.role not in [*[_.role for _ in result], *wrong_cards]:
+            if type(c) not in [*[type(_) for _ in result], *wrong_cards]:
                 result.append(c)               
         return result
 
     def get_possible_block_exchange(self):
         result = []
         for c in self.hand:
-            if c.role not in [_.role for _ in result] and c.is_def_exchange():
+            if type(c) not in [type(_) for _ in result] and c.is_def_exchange():
                 result.append(c)               
         return result
 
@@ -290,7 +290,7 @@ class Player:
             self.local_log.append(f"🎲 событие `{card.name}` c колоды")
             self.global_log.append(f"🎲 Вытянул событие из колоды")        
 
-        if sender and sender.is_evil() and card.role == Card.ROLE_INFECTION and not self.is_evil():
+        if sender and sender.is_evil() and card.is_infection() and not self.is_evil():
             self.become_infected()
 
         if sender:
@@ -322,8 +322,6 @@ class Player:
 
         if target.__class__.__name__ == "Player" and Card.PLAY_PERSON in card.__dict__:
             card.on_played_to_person(self, target)
-
-
 
     def play_panic(self, card: Card):
         self.local_log.append(f"🔥 паника `{card.name}` с колоды, ход завершён.")

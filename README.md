@@ -1,4 +1,4 @@
-# the-thing
+# The Thing
 Card game The Thing
 
 

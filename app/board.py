@@ -1,6 +1,6 @@
 import random
 from app.player import Player
-from app.card import Card
+# from app.card import Card
 from app.misc import chunks
 from app.deck_normal import card_deck_struct
 from itertools import cycle
@@ -70,7 +70,6 @@ class Board:
                 return next(iterator)
         return None
 
-
     def player_next(self, p):
         """
         Возвращает следующего игрока в зависимости от направления очередности
@@ -113,6 +112,7 @@ class Board:
         и производит валидацию, верно ли заполнена структура
         В конце смотрит, на какое количество игроков сформировать колоду
         """
+        module = __import__("app.card")
         cards = []
         for c in card_deck_struct:
             if not isinstance(c["_uuids"], list):
@@ -127,11 +127,13 @@ class Board:
                     raise IndexError("Skipped index: " + c["name"])
                 # Карта не предусмотрена на это количество игроков
                 if c["_players"][i] > n:
-                    continue    
-                cards.append(Card({
+                    continue
+                
+                class_ = getattr(module, c["_class_name"])
+                cards.append(class_({
                     "uuid": subcard_index,
                     "players": c["_players"][i],
-                    ** {k: v for k, v in c.items() if k not in ["_uuids", "_players"]}
+                    ** {k: v for k, v in c.items() if k not in ["_uuids", "_players", "_class_name", "_proto"]}
                 }))
         return cards
 

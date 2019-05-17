@@ -1,7 +1,7 @@
 from aiohttp import web
 from app.telebot import Callback, Message
-# from api.commands import MessageInvoker, CallbackInvoker
-# from api.events import EventMessage, EventCallback
+# from app.commands import MessageInvoker, CallbackInvoker
+# from app.events import EventMessage, EventCallback
 
 async def post_index(request):
     r = await request.json()

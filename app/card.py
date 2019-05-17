@@ -5,14 +5,11 @@ class Card:
     """
     """
     TYPE_PANIC = "panic"
-    ROLE_INFECTION = "infection"
-    ROLE_EVIL = "the-thing"
 
     PLAY_PERSON = "on_played_to_person"
 
     def __init__(self, d: dict):
         self.uuid = None
-        self.role = None
         self.type = None
         self.color = None
         self.name = None 
@@ -36,22 +33,22 @@ class Card:
         return "<Card: %s, uuid=%s>" % (self.name, self.uuid)  # self.__dict__            
 
     def is_def_exchange(self):
-        return self.role in ["fear", "no-thanks", "miss"]
+        return False
 
     def is_def_flamethrower(self):
-        return self.role in ["no-bbq"]
+        return False
 
     def is_def_change_place(self):
-        return self.role in ["not-bad-here"]
+        return False
 
     def is_infection(self):
-        return self.role == Card.ROLE_INFECTION
+        return type(self) == CardInfection  
 
     def is_panic(self):
-        return self.type == Card.TYPE_PANIC
+        return self.type == Card.TYPE_PANIC  
     
     def is_evil(self):
-        return self.role == Card.ROLE_EVIL  
+        return type(self) == CardEvil 
 
     def is_playable(self):
         return not self.is_infection() and not self.is_evil()
@@ -71,6 +68,189 @@ class Card:
         assert p.__class__.__name__ == "Player"
         assert p.__class__.__name__ == "Player"
         pass
+
+
+
+
+class CardEvil(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardInfection(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardFlamethrower(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardBloodTest(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardAxe(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardSuspicion(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardWhiskey(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardPerseverance(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardLookAround(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardChangePlaces(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardWindUps(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardTemptation(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardFear(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+    def is_def_exchange(self):
+        return True
+
+
+class CardNotBadHere(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+    def is_def_change_place(self):
+        return True
+
+
+class CardNoThanks(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+    def is_def_exchange(self):
+        return True
+
+
+class CardMiss(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+    def is_def_exchange(self):
+        return True
+
+
+class CardNoBbq(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+    def is_def_flamethrower(self):
+        return True
+
+
+class CardQuarantine(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardDoor(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardOldRope(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardOneTwo(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardThreeFour(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardParty(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardGoAway(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardForgetfulness(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardChainReaction(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardFriendship(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardBlindDating(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardOops(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardBetweenUs(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardConfessionTime(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardLovecraft(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
+
+class CardNecronomicon(Card):
+    def __init__(self, d: dict):
+        super().__init__(d)
+
 
 
 

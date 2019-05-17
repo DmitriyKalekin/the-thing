@@ -3,11 +3,19 @@
 # 88 карт событий (с рубашкой «Событие»)
 # 20 карт паники (с рубашкой «Паника»)
 
-from app.player import Player
-from app.card import Card
+# from app.player import Player
+# from app.card import Card
+from app.card import (
+    Card, 
+    CardEvil, CardInfection, CardFlamethrower, CardBloodTest, CardAxe, CardSuspicion, CardWhiskey,
+    CardPerseverance, CardLookAround, CardChangePlaces, CardWindUps, CardTemptation, CardFear, CardNotBadHere,
+    CardNoThanks, CardMiss, CardNoBbq, CardQuarantine, CardDoor, CardOldRope, CardOneTwo, CardThreeFour,
+    CardParty, CardGoAway, CardForgetfulness, CardChainReaction, CardFriendship, CardBlindDating, CardOops,
+    CardBetweenUs, CardConfessionTime, CardLovecraft, CardNecronomicon
+)
 
 
-game_info = { # приоритизация
+game_info = {  # приоритизация
     "on_start_tip": "```\nВам раздали карты: посмотрите личные сообщения.\nБудьте готовы за WhoMoneyQ и двор стрелять в упор!\n```",
     "description":  "Игра *\"Теряя гуманность\"* начинается!\n"
                     "Вы -- разработчики криптовалютного стартапа `WhoMoneyQ`, собравшего весь свой штат на ежегодной встрече-хакатоне с целью обсуждения перспектив развития проекта.\n\n"
@@ -30,45 +38,45 @@ game_info = { # приоритизация
 }
 
 
-def evil____on_taken(self, p: Player):
-    print(f"!!! {p.name} стал Нечто")
-    p.become_evil()
+# def evil____on_taken(self, p: Player):
+#     print(f"!!! {p.name} стал Нечто")
+#     p.become_evil()
 
 
-def infection____on_given(self, p: Player, sender: Player):
-    assert self.is_infection(), "Текущая карта - заражение"
-    assert sender.is_evil() or p.is_evil() and sender.is_infected(), "Либо нечто передаёт, либо мы сами нечто и нам передаёт заражённый"
-    assert not sender.is_good(), "Люди не могут передавать заражение"
-    assert not (sender.is_infected() and (p.is_good() or p.is_infected())), "Зараженный не может передавать человеку или зараженному (только Нечто может)"
-    print("!!! Заражение принято ")
-    p.become_infected()
-    # super(Card, self).on_received(p, sender)
+# def infection____on_given(self, p: Player, sender: Player):
+#     assert self.is_infection(), "Текущая карта - заражение"
+#     assert sender.is_evil() or p.is_evil() and sender.is_infected(), "Либо нечто передаёт, либо мы сами нечто и нам передаёт заражённый"
+#     assert not sender.is_good(), "Люди не могут передавать заражение"
+#     assert not (sender.is_infected() and (p.is_good() or p.is_infected())), "Зараженный не может передавать человеку или зараженному (только Нечто может)"
+#     print("!!! Заражение принято ")
+#     p.become_infected()
+#     # super(Card, self).on_received(p, sender)
 
 
-def flamethrower____on_played_to_person(self, p: Player, target: Player):
-    print(f"{p.name} сыграл. Огнёмет сыгран на игрока", target.name)
-    pass
+# def flamethrower____on_played_to_person(self, p: Player, target: Player):
+#     print(f"{p.name} сыграл. {self.name} сыгран на игрока", target.name)
+#     pass
 
 
-def blood_test____on_played_to_person(self, p: Player, target: Player):
-    print("Анализ сыгран на игрока", target.name)
-    pass
+# def blood_test____on_played_to_person(self, p: Player, target: Player):
+#     print(f"{p.name} сыграл. {self.name} сыгран на игрока", target.name)
+#     pass
 
 
 card_deck_struct = [
     {
         "_uuids": [1],
-        "role": "the-thing",
+        "_class_name": "CardEvil",
         "type": "infection",
         "color": "green",
         "name": "Нечто",
         "_players": [0],
         "images": ["green-the-thing"],
-        "on_taken": evil____on_taken
+        # "on_taken": evil____on_taken
     },
     {
         "_uuids": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
-        "role": "infection",
+        "_class_name": "CardInfection",
         "type": "event",
         "color": "green",
         "name": "Заражение",
@@ -79,34 +87,34 @@ card_deck_struct = [
             "green-infection-3",
             "green-infection-4"
         ],
-        "on_given": infection____on_given
+        # "on_given": infection____on_given
     },
     {
         "_uuids": [22, 23, 24, 25, 26],
-        "role": "flamethrower",
+        "_class_name": "CardFlamethrower",
         "type": "event",
         "color": "green",
         "name": "Огнемёт",
         "_players": [4, 4, 6, 9, 11],
         "images": ["green-flamethrower"],
-        "on_played_to_person": flamethrower____on_played_to_person,
-        "person_target": ["next", "prev"]
+        # "on_played_to_person": flamethrower____on_played_to_person,
+        # "person_target": ["next", "prev"]
     },
     {
         "_uuids": [27, 28, 29],
-        "role": "blood-test",
+        "_class_name": "CardBloodTest",
         "type": "event",
         "color": "green",
         "name": "Анализ",
         "_players": [5, 6, 9],
         "images": ["green-blood-test"],
-        "on_played_to_person": blood_test____on_played_to_person,
-        "person-target": ["next", "prev"]
+        # "on_played_to_person": blood_test____on_played_to_person,
+        # "person-target": ["next", "prev"]
         
     },
     {
         "_uuids": [30, 31],
-        "role": "axe",
+        "_class_name": "CardAxe",
         "type": "event",
         "color": "green",
         "name": "Топор",
@@ -116,7 +124,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [32, 33, 34, 35, 36, 37, 38, 39],
-        "role": "suspicion",
+        "_class_name": "CardSuspicion",
         "type": "event",
         "color": "green",
         "name": "Подозрение",
@@ -126,7 +134,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [40, 41, 42],
-        "role": "whiskey",
+        "_class_name": "CardWhiskey",
         "type": "event",
         "color": "green",
         "name": "Виски",
@@ -136,7 +144,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [43, 44, 45, 46, 47],
-        "role": "perseverance",
+        "_class_name": "CardPerseverance",
         "type": "event",
         "color": "green",
         "name": "Упорство",
@@ -146,7 +154,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [48, 49],
-        "role": "look-around",
+        "_class_name": "CardLookAround",
         "type": "event",
         "color": "green",
         "name": "Гляди по сторонам",
@@ -156,7 +164,7 @@ card_deck_struct = [
     },    
     {
         "_uuids": [50, 51, 52, 53, 54],
-        "role": "change-places",
+        "_class_name": "CardChangePlaces",
         "type": "event",
         "color": "green",
         "name": "Меняемся местами",
@@ -166,7 +174,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [55, 56, 57, 58, 59],
-        "role": "wind-ups",
+        "_class_name": "CardWindUps",
         "type": "event",
         "color": "green",
         "name": "Сматывай удочки",
@@ -176,7 +184,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [60, 61, 62, 63, 64, 65, 66],
-        "role": "temptation",
+        "_class_name": "CardTemptation",
         "type": "event",
         "color": "green",
         "name": "Соблазн",
@@ -187,7 +195,7 @@ card_deck_struct = [
     # {"": "====================================== BLUE ========================================"},                                                
     {
         "_uuids": [67, 68, 69, 70],
-        "role": "fear",
+        "_class_name": "CardFear",
         "type": "event",
         "color": "blue",
         "name": "Страх",
@@ -197,7 +205,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [71, 72, 73],
-        "role": "not-bad-here",
+        "_class_name": "CardNotBadHere",
         "type": "event",
         "color": "blue",
         "name": "Мне и здесь неплохо",
@@ -207,7 +215,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [74, 75, 76, 77],
-        "role": "no-thanks",
+        "_class_name": "CardNoThanks",
         "type": "event",
         "color": "blue",
         "name": "Нет уж, спасибо",
@@ -217,7 +225,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [78, 79, 80],
-        "role": "miss",
+        "_class_name": "CardMiss",
         "type": "event",
         "color": "blue",
         "name": "Мимо",
@@ -227,7 +235,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [81, 82, 83],
-        "role": "no-bbq",
+        "_class_name": "CardNoBbq",
         "type": "event",
         "color": "blue",
         "name": "Никакого шашлыка",
@@ -238,7 +246,7 @@ card_deck_struct = [
     # {"": "====================================== YELLOW ========================================"}, 
     {
         "_uuids": [84, 85],
-        "role": "quarantine",
+        "_class_name": "CardQuarantine",
         "type": "event",
         "color": "yellow",
         "name": "Карантин",
@@ -248,7 +256,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [86, 87, 88],
-        "role": "door",
+        "_class_name": "CardDoor",
         "type": "event",
         "color": "yellow",
         "name": "Заколоченная дверь",
@@ -259,116 +267,116 @@ card_deck_struct = [
     # {"": "====================================== RED ========================================"},
     {
         "_uuids": [89, 90],
-        "role": "old-rope",
+        "_class_name": "CardOldRope",
         "type": "panic",
         "color": "red",
         "name": "Старые верёвки",
         "_players": [6, 9],
-        "images": ["panic-old-rope"]
+        "images": ["panic-old-rope"],
     },
     {
         "_uuids": [91, 92],
-        "role": "one-two",
+        "_class_name": "CardOneTwo",
         "type": "panic",
         "color": "red",
         "name": "Раз-два",
         "_players": [5, 9],
-        "images": ["panic-one-two"]
+        "images": ["panic-one-two"],
     },
     {
         "_uuids": [93, 94],
-        "role": "three-four",
+        "_class_name": "CardThreeFour",
         "type": "panic",
         "color": "red",
         "name": "Три-четыре",
         "_players": [4, 9],
-        "images": ["panic-three-four"]
+        "images": ["panic-three-four"],
     },
     {
         "_uuids": [95, 96],
-        "role": "party",
+        "_class_name": "CardParty",
         "type": "panic",
         "color": "red",
         "name": "И это вы называете вечеринкой?",
         "_players": [5, 9],
-        "images": ["panic-party"]
+        "images": ["panic-party"],
     },
     {
         "_uuids": [97],
-        "role": "go-away",
+        "_class_name": "CardGoAway",
         "type": "panic",
         "color": "red",
         "name": "Убирайся прочь!",
         "_players": [5],
-        "images": ["panic-go-away"]
+        "images": ["panic-go-away"],
     },
     {
         "_uuids": [98],
-        "role": "forgetfulness",
+        "_class_name": "CardForgetfulness",
         "type": "panic",
         "color": "red",
         "name": "Забывчивость",
         "_players": [4],
-        "images": ["panic-forgetfulness-950x1343"]
+        "images": ["panic-forgetfulness-950x1343"],
     },
     {
         "_uuids": [99, 100],
-        "role": "chain-reaction",
+        "_class_name": "CardChainReaction",
         "type": "panic",
         "color": "red",
         "name": "Цепная реакция",
         "_players": [4, 9],
-        "images": ["panic-chain-reaction"]
+        "images": ["panic-chain-reaction"],
     },
     {
         "_uuids": [101, 102],
-        "role": "friendship",
+        "_class_name": "CardFriendship",
         "type": "panic",
         "color": "red",
         "name": "Давай дружить",
         "_players": [7, 9],
-        "images": ["panic-friendship"]
+        "images": ["panic-friendship"],
     },
     {
         "_uuids": [103, 104],
-        "role": "blind-dating",
+        "_class_name": "CardBlindDating",
         "type": "panic",
         "color": "red",
         "name": "Свидание вслепую",
         "_players": [4, 9],
-        "images": ["panic-blind-dating"]
+        "images": ["panic-blind-dating"],
     },
     {
         "_uuids": [105],
-        "role": "oops",
+        "_class_name": "CardOops",
         "type": "panic",
         "color": "red",
         "name": "Упс",
         "_players": [10],
-        "images": ["panic-oops"]
+        "images": ["panic-oops"],
     },
     {
         "_uuids": [106, 107],
-        "role": "between-us",
+        "_class_name": "CardBetweenUs",
         "type": "panic",
         "color": "red",
         "name": "Только между нами",
         "_players": [7, 9],
-        "images": ["panic-between-us"]
+        "images": ["panic-between-us"],
     },
     {
         "_uuids": [108],
-        "role": "confession-time",
+        "_class_name": "CardConfessionTime",
         "type": "panic",
         "color": "red",
         "name": "Время признаний",
         "_players": [8],
-        "images": ["panic-confession-time"]
+        "images": ["panic-confession-time"],
     },
     # {"": "-------------------------ПРОМО-----------------------------------------------------"},
     {
         "_uuids": [109],
-        "role": "lovecraft",
+        "_class_name": "CardLovecraft",
         "type": "event",
         "color": "green",
         "name": "Лавкрафт",
@@ -378,7 +386,7 @@ card_deck_struct = [
     },
     {
         "_uuids": [110],
-        "role": "necronomicon",
+        "_class_name": "CardNecronomicon",
         "type": "event",
         "color": "green",
         "name": "Некрономикон",
