@@ -97,8 +97,8 @@ card_deck_struct = [
         "name": "Огнемёт",
         "_players": [4, 4, 6, 9, 11],
         "images": ["green-flamethrower"],
+        "person_target": ["prev", "next"]
         # "on_played_to_person": flamethrower____on_played_to_person,
-        # "person_target": ["next", "prev"]
     },
     {
         "_uuids": [27, 28, 29],
@@ -108,9 +108,9 @@ card_deck_struct = [
         "name": "Анализ",
         "_players": [5, 6, 9],
         "images": ["green-blood-test"],
+        "person_target": ["prev", "next"]
         # "on_played_to_person": blood_test____on_played_to_person,
-        # "person-target": ["next", "prev"]
-        
+       
     },
     {
         "_uuids": [30, 31],
@@ -120,6 +120,7 @@ card_deck_struct = [
         "name": "Топор",
         "_players": [4, 9],
         "images": ["green-axe"],
+        "person_target": ["self", "prev", "next"]
         
     },
     {
@@ -130,6 +131,7 @@ card_deck_struct = [
         "name": "Подозрение",
         "_players": [4, 4, 4, 4, 7, 8, 9, 10], 
         "images": ["green-suspicion"],
+        "person_target": ["prev", "next"]
         
     },
     {
@@ -140,6 +142,7 @@ card_deck_struct = [
         "name": "Виски",
         "_players": [4, 6, 10],
         "images": ["green-whiskey"],
+        "person_target": ["self"]
         
     },
     {
@@ -149,7 +152,7 @@ card_deck_struct = [
         "color": "green",
         "name": "Упорство",
         "_players": [4, 4, 6, 9, 10],
-        "images": ["green-perseverance"],
+        "images": ["green-perseverance"]
         
     },
     {
@@ -170,6 +173,7 @@ card_deck_struct = [
         "name": "Меняемся местами",
         "_players": [4, 4, 7, 9, 11],
         "images": ["green-change-places"],
+        "person_target": ["prev", "next"]
         
     },
     {
@@ -180,6 +184,7 @@ card_deck_struct = [
         "name": "Сматывай удочки",
         "_players": [4, 4, 7, 9, 11],
         "images": ["green-wind-up"],
+        "person_target": ["any"]
         
     },
     {
@@ -190,6 +195,7 @@ card_deck_struct = [
         "name": "Соблазн",
         "_players": [4, 4, 6, 7, 8, 10, 11],
         "images": ["green-temptation"],
+        "person_target": ["any"]
         
     },
     # {"": "====================================== BLUE ========================================"},                                                
@@ -252,6 +258,7 @@ card_deck_struct = [
         "name": "Карантин",
         "_players": [5, 9],
         "images": ["yellow-quarantine"],
+        "person_target": ["self", "prev", "next"]
         
     },
     {
@@ -262,6 +269,7 @@ card_deck_struct = [
         "name": "Заколоченная дверь",
         "_players": [4, 7, 11],
         "images": ["yellow-door"],
+        "person_target": ["prev", "next"]
         
     },
     # {"": "====================================== RED ========================================"},

@@ -1,4 +1,4 @@
-from app.card import Card, CardInfection, CardEvil
+from app.card import Card, CardInfection, CardEvil, IPlayableToPerson, IDefCardExchange
 import asyncio
 import uuid
 # import inspect
@@ -39,6 +39,9 @@ class Player:
         self.avatar = "😺"
         self.set_avatar()
         self.view = None
+        self._quarantined = False
+        self._quarantine_counter = 0
+        self._target_player = None
 
     def __repr__(self):
         return "<Player: %s, user_id=%s, uuid=%s>" % (self.user_fullname, self.user_id, self.uuid)  # self.__dict__           
@@ -81,7 +84,7 @@ class Player:
         # await self.show_table_to_all()
         # await self.show_log_to_all(f"Фаза 1. {p.user_fullname} тянет карту с колоды")
         card = self.pull_deck()
-        assert type(card) == Card
+        assert isinstance(card, Card)
         if card.is_panic():
             self.play_panic(card)
             self.board.deck.append(card)  # карта паники ушла в колоду
@@ -109,22 +112,34 @@ class Player:
         """
         Фаза сброса или игры карты с руки
         """
+        self.phase2_prepare()
+
         cmd, card_uuid = await self.game.input(self)
         assert cmd in ["phase2:play_card", "phase2:drop_card"]
         card = self.pop_card_by_uuid(int(card_uuid))  # выбранная карта
-        assert type(card) == Card
+        assert isinstance(card, Card)
         if cmd == "phase2:play_card":
-            if Card.PLAY_PERSON in card.__dict__:
-                await self.view.show_player_target(self, card)
-                cmd, p_uuid = await self.game.input(self)
-                assert cmd == "phase2:play_card/player"
-                self.play_card(card, target=self.board.player_by_uuid(p_uuid))
+            if isinstance(card, IPlayableToTarget):
+                candidates = card.get_targets(self)
+                if len(candidates) > 1:
+                    await self.view.show_player_target(self, candidates)
+                    cmd, p_uuid = await self.game.input(self)
+                    assert cmd == "phase2:play_card/player"
+                    self.play_card(card, target=self.board.player_by_uuid(p_uuid))
+                elif len(candidates) == 1:
+                    self.play_card(card, target=candidates[0])
+                else:
+                    print("ERROR: len(candidates) == 0")
+                    print(candidates)
             else:
                 self.play_card(card, target=None)
             self.board.deck.append(card)
         else:
             assert cmd == "phase2:drop_card"
             self.drop_card(card)
+
+        self.phase2_end()
+
         return
 
     async def phase3_prepare(self, next_player: "Player"):
@@ -149,8 +164,8 @@ class Player:
         p2, card2 = exchangers[1]
         assert type(p1) == Player
         assert type(p2) == Player
-        assert type(card1) == Card
-        assert type(card2) == Card
+        assert isinstance(card1, Card)
+        assert isinstance(card2, Card)
         await asyncio.gather(*[
             p1.take_on_hand(card2, sender=p2),
             p2.take_on_hand(card1, sender=p1)
@@ -162,7 +177,7 @@ class Player:
         # BUG: assertion error here
         assert cmd in ["phase3:give_card", "phase3:block_exchange_card"]
         my_card = self.pop_card_by_uuid(int(card_uuid))
-        assert type(my_card) == Card
+        assert isinstance(my_card, Card)
 
         if cmd == "phase3:give_card":
             self.local_log[-1] = f"🎁 отдана `{my_card.name}` для *{next_player.user_fullname}*"        
@@ -185,7 +200,10 @@ class Player:
         result = []
         for c in self.hand:
             if c.is_playable() and type(c) not in [type(_) for _ in result]:
-                result.append(c)
+                if isinstance(c, IPlayableToPerson):
+                    candidates = c.get_person_target(self)
+                    if len(candidates) > 0:
+                        result.append(c)
         return result
 
     def cnt_infection(self):
@@ -204,7 +222,13 @@ class Player:
         return kill_em
 
     def is_quarantined(self):
-        return False
+        return self._quarantined
+
+    def set_quarantined(self, v: bool):
+        print(f"{self.name} статус карантина: ", v)
+        self._quarantined = v
+        self._quarantine_counter = 3 if v else 0
+
 
     def get_possible_drop(self):
         result = []
@@ -238,7 +262,7 @@ class Player:
     def get_possible_block_exchange(self):
         result = []
         for c in self.hand:
-            if type(c) not in [type(_) for _ in result] and c.is_def_exchange():
+            if type(c) not in [type(_) for _ in result] and isinstance(c, IDefCardExchange):
                 result.append(c)               
         return result
 
@@ -260,7 +284,7 @@ class Player:
             if c.uuid == uuid:
                 # for j, s in enumerate(self.hand_slots):
                 #     if s["card"] and s["card"].uuid == c.uuid:
-                #         assert type(s["card"]) == Card
+                #         assert isinstance(card, Card)
                 #         self.hand_slots[j]["card"] = None
                 return self.hand.pop(i)
         return None        
@@ -320,8 +344,10 @@ class Player:
         self.global_log[-1] = f"▶️ Сыграл карту `{card.name}`"
         print(f"{self.name} сыграл карту {card.name}")
 
-        if target.__class__.__name__ == "Player" and Card.PLAY_PERSON in card.__dict__:
-            card.on_played_to_person(self, target)
+        if target.__class__.__name__ == "Player":
+            return card.on_played_to_person(self, target)
+
+        return True
 
     def play_panic(self, card: Card):
         self.local_log.append(f"🔥 паника `{card.name}` с колоды, ход завершён.")

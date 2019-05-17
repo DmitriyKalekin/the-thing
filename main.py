@@ -55,6 +55,7 @@ async def init(loop, events_queue):
 
 def main():
     random.seed(6)
+    # random.seed(1)
     ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ssl_ctx.load_cert_chain('/etc/ssl/eva-bot.ru/flask.pem', '/etc/ssl/eva-bot.ru/certificate.key')
     loop = asyncio.get_event_loop()

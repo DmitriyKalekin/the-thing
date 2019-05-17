@@ -1,6 +1,6 @@
 import asyncio
 from app.player import Player
-from app.card import Card
+from app.card import Card, IPlayableToPerson
 # from app.misc import chunks
 # from app.deck_normal import game_info
 # from app.board import Board
@@ -62,30 +62,15 @@ class GameView:
             parse_mode="markdown"  
         )
 
-    async def show_player_target(self, p, card: Card):
-        assert type(card.person_target) == list
-
-        candidates = []
-        for pt in card.person_target:
-            if pt == "self":
-                if not p.is_quarantined():
-                    candidates.append(p)
-            if pt == "next":
-                next_player = self.game.board.player_next(p)
-                if not p.is_quarantined() and not next_player.is_quarantined():
-                    candidates.append(next_player)
-            if pt == "prev":
-                prev_player = self.game.board.player_prev(p)
-                if not p.is_quarantined() and not prev_player.is_quarantined():
-                    candidates.append(prev_player)
-
+    async def show_player_target(self, p, candidates: list):
+        assert len(candidates) > 1
         await self.t.editMessageText(
             p.user_id,
             p.panel_message_id,
             "\r\n".join(p.local_log),
             reply_markup={
                 "inline_keyboard": [
-                    *[[{"text": f"🎯 {p.name}", "callback_data": f"phase2:play_card/player {p.uuid}"}] for p in candidates],
+                    *[[{"text": f"🎯 {_.name}", "callback_data": f"phase2:play_card/player {_.uuid}"}] for _ in candidates],
                 ]
                 # 🖐  🕹 Joystick 🗑 Wastebasket ☣ Biohazard 🎮 🎯 Direct Hit
             },
@@ -146,7 +131,7 @@ class GameView:
         """
         counter = 0
         for card in p.hand:
-            assert type(card) == Card
+            assert isinstance(card, Card)
             image = f"https://eva-bot.ru/res/normal/min/{choice(card.images)}-950x1343-min.png"
             try:
                 self.game.app.loop.create_task(

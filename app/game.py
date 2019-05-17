@@ -116,26 +116,27 @@ class Game:
     async def run(self):
         # До старта игры показываем карты игрокам, пишем историю ситуации и ждём, чтобы они прочитали
         assert len(self.board.players) > 0
-        p = self.board.next_turn()
+        
         await self.view.show_cards_to_all()
         
         while not self.board.is_end:
             await asyncio.sleep(0)
-            p.global_log = []
+            p = self.board.next_turn()
             # Рисуем стол и очередность в общем чате
             await self.view.show_table_to_all()
             if not await p.phase1():
                 continue
             
-            await p.phase2_prepare()
             await p.phase2()
-            await p.phase2_end()
+
+            # ----- TODO: Здесь защищается тот, против кого играли
+
+            # next_player = p._target_player if p._target_player else 
+            # p._target_player = None
 
             next_player = self.board.player_next(p)
             await p.phase3_prepare(next_player)
             await p.phase3(next_player)
-
-            p.global_log = []
-            p = self.board.next_turn()
+            
         await self.view.print_group("game ended")
         return

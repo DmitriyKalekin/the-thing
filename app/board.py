@@ -4,7 +4,7 @@ from app.player import Player
 from app.misc import chunks
 from app.deck_normal import card_deck_struct
 from itertools import cycle
-
+import importlib
 
 class Board:
     """
@@ -15,7 +15,8 @@ class Board:
         n = len(list_players)
         assert n >= 4
         self.n = n
-        self.players = []
+        self.players = []  # Индексы - места за столом
+        self.doors = []  # Список множеств из двух элементов
         self._cards = self.load_cards(card_deck_struct, n)
         init_hands, self.deck = self.split_deck(self._cards, n)
         for i, hand in enumerate(init_hands):
@@ -32,6 +33,28 @@ class Board:
         for u in self.players:
             if u.uuid == uuid:
                 return u
+
+    def get_player_seat(self, p: Player):
+        for i, _ in enumerate(self.players):
+            if p == _:
+                return i
+        raise Warning("ERROR: player outside the table")
+
+    def set_door(self, p: Player, target: Player):
+        d = {self.get_player_seat(p), self.get_player_seat(target)}
+        if d not in self.doors:
+            self.doors.append(d)
+
+    def break_door(self, p: Player, target: Player):
+        d = {self.get_player_seat(p), self.get_player_seat(target)}
+        if d not in self.doors:
+            raise Warning("ERROR: no door between players")
+        self.doors = list([_ for _ in self.doors if _ != d])
+
+    def is_door(self, p: Player, target: Player):
+        d = {self.get_player_seat(p), self.get_player_seat(target)}
+        return d in self.doors
+               
 
     async def update_players_hands(self):
         pass
@@ -99,11 +122,14 @@ class Board:
         #     self.turn = 0
         # if self.turn < 0:
         #     self.turn = len(self.players)-1 
+        if self.current_player:
+            self.current_player.global_log = []
         if self.move == 0:
             self.current_player = self.player_next(None)
         else:
             self.current_player = self.player_next(self.current_player)
         self.move += 1
+        self.current_player.global_log = []
         return self.current_player
         
     def load_cards(self, card_deck_struct, n):
@@ -112,7 +138,7 @@ class Board:
         и производит валидацию, верно ли заполнена структура
         В конце смотрит, на какое количество игроков сформировать колоду
         """
-        module = __import__("app.card")
+        module = importlib.import_module("app.card")
         cards = []
         for c in card_deck_struct:
             if not isinstance(c["_uuids"], list):
@@ -130,7 +156,7 @@ class Board:
                     continue
                 
                 class_ = getattr(module, c["_class_name"])
-                cards.append(class_({
+                cards.append(class_(self, {
                     "uuid": subcard_index,
                     "players": c["_players"][i],
                     ** {k: v for k, v in c.items() if k not in ["_uuids", "_players", "_class_name", "_proto"]}
