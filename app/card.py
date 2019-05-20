@@ -7,7 +7,7 @@ class IPlayableToTarget:
 
 class IPlayableToPerson(IPlayableToTarget):
     
-    def on_played_to_person(self, p: "Player", target: "Player"):
+    async def on_played_to_person(self, p: "Player", target: "Player"):
         print(f"{p.name} сыграл. {self.name} сыгран на игрока", target.name)
         return True
     
@@ -20,23 +20,28 @@ class IPlayableToPerson(IPlayableToTarget):
             return []
 
         candidates = []
+        u = []
         for pt in self.person_target:
             if pt == "self":
-                candidates.append(p)
+                u.append(p)
             if pt == "next":
-                next_player = self.board.player_next(p)
-                if not next_player.is_quarantined():
-                    candidates.append(next_player)
+                u.append(self.board.player_next(p))
             if pt == "prev":
-                prev_player = self.board.player_prev(p)
-                if not prev_player.is_quarantined():
-                    candidates.append(prev_player)
+                u.append(self.board.player_prev(p))
             if pt == "any":
-                for any_player in self.board.players:
-                    if any_player == p or any_player.is_quarantined():
-                        continue
-                    candidates.append(any_player)
+                u.extend([any_player for any_player in self.board.players if any_player != p])
+
+        for ccc in u:
+            if ccc.is_quarantined():
+                continue
+            if p.is_infected() and isinstance(self, CardFlamethrower) and ccc.is_evil():
+                continue
+            # TODO: door between p and ccc    
+
+            candidates.append(ccc)
+
         return candidates
+
 
 class IPlayableToSeat(IPlayableToTarget):
     def get_targets(self, p: "Player"):
@@ -139,7 +144,9 @@ class CardFlamethrower(Card, IPlayableToPerson):
     def __init__(self, board, d: dict):
         super().__init__(board, d)
 
-    def on_played_to_person(self, p: "Player", target: "Player"):
+    async def on_played_to_person(self, p: "Player", target: "Player"):
+        p.board.kill_player(target)
+        await target.view.clear_hand(target)
         print(f"ОГНЕМЁТ!!! {p.name} сыграл. {self.name} сыгран на игрока", target.name)
         return True
 
@@ -148,7 +155,7 @@ class CardBloodTest(Card, IPlayableToPerson):
     def __init__(self, board, d: dict):
         super().__init__(board, d)
     
-    def on_played_to_person(self, p: "Player", target: "Player"):
+    async def on_played_to_person(self, p: "Player", target: "Player"):
         print(f"ТЕСТ КРОВИ!!! {p.name} сыграл. {self.name} сыгран на игрока", target.name)
         return True
 
@@ -157,7 +164,7 @@ class CardAxe(Card, IPlayableToPerson):
     def __init__(self, board, d: dict):
         super().__init__(board, d)
 
-    def on_played_to_person(self, p: "Player", target: "Player"):
+    async def on_played_to_person(self, p: "Player", target: "Player"):
         self.board.break_door(p, target)
         print("Сломана дверь")
         print(f"{p.name} сыграл. {self.name} сыгран на игрока", target.name) 
@@ -197,7 +204,7 @@ class CardTemptation(Card, IPlayableToPerson):
     def __init__(self, board, d: dict):
         super().__init__(board, d)
 
-    def on_played_to_person(self, p: "Player", target: "Player"):
+    async def on_played_to_person(self, p: "Player", target: "Player"):
         p._next_player = target
         print(f"{p.name} сыграл. {self.name} сыгран на игрока", target.name)
         return False
@@ -242,7 +249,7 @@ class CardQuarantine(Card, IPlayableToPerson):
     def __init__(self, board, d: dict):
         super().__init__(board, d)
 
-    def on_played_to_person(self, p: "Player", target: "Player"):
+    async def on_played_to_person(self, p: "Player", target: "Player"):
         target.set_quarantined(True)
         print(f"{p.name} сыграл. {self.name} сыгран на игрока", target.name)
         return True
@@ -253,7 +260,7 @@ class CardDoor(Card, IPlayableToPerson):
     def __init__(self, board, d: dict):
         super().__init__(board, d)
 
-    def on_played_to_person(self, p: "Player", target: "Player"):
+    async def on_played_to_person(self, p: "Player", target: "Player"):
         self.board.set_door(p, target)
         print("Установлена дверь")
         print(f"{p.name} сыграл. {self.name} сыгран на игрока", target.name)

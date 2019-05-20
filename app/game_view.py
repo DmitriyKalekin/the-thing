@@ -6,6 +6,7 @@ from app.card import Card, IPlayableToPerson
 # from app.board import Board
 # from app.telebot import Callback, User
 from random import choice  
+import traceback
 
 
 class GameView:
@@ -19,11 +20,12 @@ class GameView:
         self.board = self.game.board
 
     async def show_cards_to_all(self):
+        # TODO: gather
         if self.cfg.DEBUG:
             for p in self.board.players:
                 await self.show_cards(p)
         else:
-            await asyncio.gather(*[self.show_cards(p) for p in self.board.players])        
+            await asyncio.wait([self.show_cards(p) for p in self.board.players])        
 
     async def show_cards(self, p: Player):
         # if not p.title_message_id:
@@ -47,14 +49,29 @@ class GameView:
      
         return
 
+    async def clear_hand(self, p: Player):
+        print("Чистим руку", p.user_id, p.panel_message_id)
+        await self.t.deleteMessage(p.user_id, p.panel_message_id)
+        await self.delete_image_slots(p)
+
     async def show_play_drop_options(self, p):
+        play_opts = []
+        for play_card in p.get_possible_play():
+            candidates = play_card.get_targets(p)
+            if len(candidates) > 1:
+                label = f"👨x{len(candidates)}"
+            else:
+                label = f"на 🎯 {candidates[0].name}"
+            play_opts.append([{"text": f"▶️ {play_card.name} {label}", "callback_data": f"phase2:play_card {play_card.uuid}"}])
+
         await self.t.editMessageText(
             p.user_id,
             p.panel_message_id,
             "\r\n".join(p.local_log),
             reply_markup={
                 "inline_keyboard": [
-                    *[[{"text": f"▶️ {play_card.name}", "callback_data": f"phase2:play_card {play_card.uuid}"}] for play_card in p.get_possible_play()],
+                    *play_opts,
+                    # *[[{"text": f"▶️ {play_card.name}", "callback_data": f"phase2:play_card {play_card.uuid}"}] for play_card in p.get_possible_play()],
                     *[[{"text": f"🗑 {drop_card.name}", "callback_data": f"phase2:drop_card {drop_card.uuid}"}] for drop_card in p.get_possible_drop()]
                 ]
                 # 🖐  🕹 Joystick 🗑 Wastebasket ☣ Biohazard 🎮 🎯 Direct Hit
@@ -76,6 +93,25 @@ class GameView:
             },
             parse_mode="markdown"  
         )        
+
+    async def show_def_options(self, p, candidates: list):
+        def_buttons = [
+            [{"text": "☠️ Разрешить сыграть", "callback_data": f"phasedef:allow"}]
+        ]
+
+        await self.t.editMessageText(
+            p.user_id,
+            p.panel_message_id,
+            "\r\n".join(p.local_log),
+            reply_markup={
+                "inline_keyboard": [
+                    *[[{"text": f"🛡 {def_card.name}", "callback_data": f"phasedef:def_card {def_card.uuid}"}] for def_card in candidates],
+                    *def_buttons
+                ]
+                #   🕹 Joystick 🗑 Wastebasket ☣ Biohazard 🎮 🎯 Direct Hit
+            },
+            parse_mode="markdown"  
+        )
 
     async def show_give_options(self, p, receiver, can_def=False):
         def_buttons = []
@@ -125,6 +161,14 @@ class GameView:
         for i, msg in enumerate(r2["result"]):
             p.hand_slots.append(msg["message_id"])
 
+    async def delete_image_slots(self, p):
+        print("удаляем картинки", p.user_id, p.hand_slots)
+        await asyncio.wait([
+            self.t.deleteMessage(p.user_id, msg_id) for msg_id in p.hand_slots
+        ])    
+
+
+
     async def update_image_slots(self, p):
         """
         Обновляем слоты для изображений -  только изменившиеся
@@ -153,7 +197,7 @@ class GameView:
     def print_hands(self, player: Player):
         output = f"Ход {self.board.move}, ходит *{self.board.current_player.user_fullname}* \r\n"
         for i, p in enumerate(self.board.players):
-            turn = "✅" if i == self.board.turn else "⏳"  # ☣️ # 🤢
+            turn = "✅" if i == self.board.current_player == p else " "  # ☣️ # 🤢
             # output += "```"
             name = f"*{p.name}*" if p == self.board.current_player else p.name
             output += f"{turn} {p.avatar} {name}\r\n" 
@@ -173,7 +217,10 @@ class GameView:
 
     async def show_table_to_all(self):
         assert type(self.board.players) == list
-        await asyncio.gather(*[self.show_table(p) for p in self.board.players])
+        # print("Отрисовка борды всем")
+        # traceback.print_stack()
+        # TODO: gather
+        await asyncio.wait([self.show_table(p) for p in self.board.players])
         return  
 
     async def show_table(self, p: Player):

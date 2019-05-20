@@ -34,7 +34,9 @@ game_info = {  # приоритизация
                     "👾🧟‍ *2. Алекс и каздевщики*\n"
                     "На первом ходу один из игроков понимает, что он и есть 👾`The Алекс`. Его цель - избавиться от всех разработчиков:\n"
                     "либо превратив их в подконтрольных ему каздевщиков 🧟‍, либо госпитализировав в псих-диспансер 👨‍⚕️. "
-                    "🧟‍ Задача каздевщиков подыгрывать 👾`Алексу` в порывах буйных психических возбуждений 🤪."
+                    "🧟‍ Задача каздевщиков подыгрывать 👾`Алексу` в порывах буйных психических возбуждений 🤪.",
+    "evil_won": "В этот раз Алекс заразил всех разработчиков. Game OVER",
+    "humans_won": "Разработчики победили. Алекс занялся другими проектами."
 }
 
 
@@ -97,7 +99,8 @@ card_deck_struct = [
         "name": "Огнемёт",
         "_players": [4, 4, 6, 9, 11],
         "images": ["green-flamethrower"],
-        "person_target": ["prev", "next"]
+        "person_target": ["prev", "next"],
+        "play_type": "person"
         # "on_played_to_person": flamethrower____on_played_to_person,
     },
     {
@@ -108,7 +111,8 @@ card_deck_struct = [
         "name": "Анализ",
         "_players": [5, 6, 9],
         "images": ["green-blood-test"],
-        "person_target": ["prev", "next"]
+        "person_target": ["prev", "next"],
+        "play_type": "person"
         # "on_played_to_person": blood_test____on_played_to_person,
        
     },
@@ -120,8 +124,8 @@ card_deck_struct = [
         "name": "Топор",
         "_players": [4, 9],
         "images": ["green-axe"],
-        "person_target": ["self", "prev", "next"]
-        
+        "person_target": ["self", "prev", "next"],
+        "play_type": "door"
     },
     {
         "_uuids": [32, 33, 34, 35, 36, 37, 38, 39],
@@ -131,7 +135,8 @@ card_deck_struct = [
         "name": "Подозрение",
         "_players": [4, 4, 4, 4, 7, 8, 9, 10], 
         "images": ["green-suspicion"],
-        "person_target": ["prev", "next"]
+        "person_target": ["prev", "next"],
+        "play_type": "person"
         
     },
     {
@@ -142,7 +147,8 @@ card_deck_struct = [
         "name": "Виски",
         "_players": [4, 6, 10],
         "images": ["green-whiskey"],
-        "person_target": ["self"]
+        "person_target": ["self"],
+        "play_type": "person"
         
     },
     {
@@ -152,7 +158,8 @@ card_deck_struct = [
         "color": "green",
         "name": "Упорство",
         "_players": [4, 4, 6, 9, 10],
-        "images": ["green-perseverance"]
+        "images": ["green-perseverance"],
+        "play_type": "board"
         
     },
     {
@@ -163,6 +170,7 @@ card_deck_struct = [
         "name": "Гляди по сторонам",
         "_players": [4, 9],
         "images": ["green-look-around"],
+        "play_type": "board"
         
     },    
     {
@@ -173,7 +181,8 @@ card_deck_struct = [
         "name": "Меняемся местами",
         "_players": [4, 4, 7, 9, 11],
         "images": ["green-change-places"],
-        "person_target": ["prev", "next"]
+        "person_target": ["prev", "next"],
+        "play_type": "seat"
         
     },
     {
@@ -184,7 +193,8 @@ card_deck_struct = [
         "name": "Сматывай удочки",
         "_players": [4, 4, 7, 9, 11],
         "images": ["green-wind-up"],
-        "person_target": ["any"]
+        "person_target": ["any"],
+        "play_type": "seat"
         
     },
     {
@@ -195,7 +205,8 @@ card_deck_struct = [
         "name": "Соблазн",
         "_players": [4, 4, 6, 7, 8, 10, 11],
         "images": ["green-temptation"],
-        "person_target": ["any"]
+        "person_target": ["any"],
+        "play_type": "person"
         
     },
     # {"": "====================================== BLUE ========================================"},                                                
@@ -207,7 +218,9 @@ card_deck_struct = [
         "name": "Страх",
         "_players": [5, 6, 8, 11],
         "images": ["blue-fear"],
-        
+        "play_type": ["exchange"],
+        "def_play": ["CardTemptation"]
+       
     },
     {
         "_uuids": [71, 72, 73],
@@ -217,6 +230,8 @@ card_deck_struct = [
         "name": "Мне и здесь неплохо",
         "_players": [4, 6, 11],
         "images": ["blue-not-bad-here"],
+        "play_type": ["seat"],
+        "def_play": ["CardWindUps", "CardChangePlaces"]
         
     },
     {
@@ -227,6 +242,8 @@ card_deck_struct = [
         "name": "Нет уж, спасибо",
         "_players": [4, 6, 8, 11],
         "images": ["blue-no-th"],
+        "play_type": ["exchange"],
+        "def_play": ["CardTemptation"]
         
     },
     {
@@ -237,6 +254,8 @@ card_deck_struct = [
         "name": "Мимо",
         "_players": [4, 6, 11],
         "images": ["blue-miss"],
+        "play_type": ["exchange"],
+        "def_play": ["CardTemptation"]
         
     },
     {
@@ -247,6 +266,8 @@ card_deck_struct = [
         "name": "Никакого шашлыка",
         "_players": [4, 6, 11],
         "images": ["blue-no-bbq"],
+        "play_type": ["person"],
+        "def_play": ["CardFlamethrower"]
         
     },
     # {"": "====================================== YELLOW ========================================"}, 

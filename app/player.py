@@ -1,6 +1,7 @@
 from app.card import Card, CardInfection, CardEvil, IPlayableToPerson, IDefCardExchange
 import asyncio
 import uuid
+import traceback
 # import inspect
 # from board import Board
 # import random
@@ -94,43 +95,102 @@ class Player:
             return True   
         return True
 
-    async def phase2_prepare(self):
-        self.local_log.append(f"❗️ Сыграйте ▶️ или сбросьте 🗑 карту...")
-        self.global_log.append(f"🃏 Играет или сбрасывает...")
-        await asyncio.gather(*[
-            self.view.show_play_drop_options(self),
+
+
+    async def phasedef(self, card: Card, attacker: "Player") -> bool:
+        """
+        Фаза защиты от игры с руки
+        True - если получилось защититься
+        False - не получилось
+        """
+        candidates = self.get_possible_def(card)
+        if not candidates:
+            return False
+        
+        # ----------------- TODO: refactor --------------------
+        print("Вошли в подготовку")
+        self.local_log.append(f"❗️ Защититесь 🛡 или разрешите ☠️ сыграть против вас карту {card.name}")
+        self.global_log.append(f"⏳ Принимает решение ...")
+        await asyncio.wait([
+            self.view.show_def_options(self, candidates),
             self.view.show_table_to_all()
         ])
 
-    async def phase2_end(self):
-        await asyncio.gather(*[
-            self.view.show_cards(self),
-            self.view.show_table_to_all()
+
+        cmd, card_uuid = await self.game.input(self)
+        assert cmd in ["phasedef:def_card", "phasedef:allow"]
+        if cmd == "phasedef:allow":
+            print(f"{self.name} разрешает сыграть против себя карту")
+            self.local_log.append(f"☠️ разрешил сыграть на себя карту {card.name}")
+            self.global_log.append(f"☠️ Разрешил сыграть на себя карту {card.name}")
+            # await self.view.show_table_to_all()
+            return False
+
+        # Защита против сыгранного
+        card_def = self.pop_card_by_uuid(int(card_uuid))  # выбранная карта
+        self.local_log.append(f"🛡 защитился от карты {card.name}, сыграв {card_def.name}")
+        self.global_log.append(f"🛡 Защитился от карты {card.name}, сыграв {card_def.name}")
+        print("Добавлено в локальный и глобальный лог")
+        assert isinstance(card_def, Card)
+        if cmd == "phasedef:def_card":
+            self.play_card(card_def, target=None)
+            self.board.deck.append(card_def)
+
+            card_deck = self.pull_deck()
+            while card_deck.is_panic():
+                self.board.deck.append(card_deck)
+                card_deck = self.pull_deck()
+            await self.take_on_hand(card_deck, silent=True)
+        # await self.view.show_table_to_all()
+        return True
+
+
+    async def phase2_prepare(self):
+        self.local_log.append(f"❗️ Сыграйте ▶️ или сбросьте 🗑 карту...")
+        self.global_log.append(f"🃏 Играет или сбрасывает...")
+        await asyncio.wait([
+            self.view.show_play_drop_options(self),
+            # self.view.show_table_to_all()
         ])
+
+    async def end_phase(self):
+        await asyncio.wait([
+            self.view.show_cards(self),
+            # self.view.show_table_to_all()
+        ])
+
 
     async def phase2(self):
         """
         Фаза сброса или игры карты с руки
         """
-        self.phase2_prepare()
-
+        
+        target = None
+        card = None
         cmd, card_uuid = await self.game.input(self)
         assert cmd in ["phase2:play_card", "phase2:drop_card"]
         card = self.pop_card_by_uuid(int(card_uuid))  # выбранная карта
         assert isinstance(card, Card)
         if cmd == "phase2:play_card":
-            if isinstance(card, IPlayableToTarget):
+            if isinstance(card, IPlayableToPerson):
                 candidates = card.get_targets(self)
                 if len(candidates) > 1:
                     await self.view.show_player_target(self, candidates)
                     cmd, p_uuid = await self.game.input(self)
                     assert cmd == "phase2:play_card/player"
-                    self.play_card(card, target=self.board.player_by_uuid(p_uuid))
+                    target = self.board.player_by_uuid(p_uuid)
                 elif len(candidates) == 1:
-                    self.play_card(card, target=candidates[0])
+                    target = candidates[0]
                 else:
                     print("ERROR: len(candidates) == 0")
                     print(candidates)
+                    return
+
+                self.play_card(card, target=target)
+                # await self.view.show_table_to_all()                    
+
+
+
             else:
                 self.play_card(card, target=None)
             self.board.deck.append(card)
@@ -138,21 +198,21 @@ class Player:
             assert cmd == "phase2:drop_card"
             self.drop_card(card)
 
-        self.phase2_end()
+        await self.end_phase()
 
-        return
+        return target, card
 
     async def phase3_prepare(self, next_player: "Player"):
         self.local_log.append(f"❗️ Передайте карту для *{next_player.user_fullname}*")
-        self.global_log.append(f"💤 Передаёт карту для {next_player.user_fullname}")
+        self.global_log.append(f"⏳ Передаёт карту для {next_player.user_fullname}")
 
         next_player.local_log.append(f"❗️ Передайте карту для *{self.user_fullname}*, либо защититесь 🛡 от обмена.")
-        next_player.global_log.append(f"💤 Передаёт карту для {self.user_fullname}")
+        next_player.global_log.append(f"⏳ Передаёт карту для {self.user_fullname}")
 
-        await asyncio.gather(*[
+        await asyncio.wait([
             self.view.show_give_options(self, next_player),
             self.view.show_give_options(next_player, self, can_def=True),
-            self.view.show_table_to_all()
+            # self.view.show_table_to_all()
         ])
 
     async def phase3(self, next_player: "Player"):
@@ -166,7 +226,7 @@ class Player:
         assert type(p2) == Player
         assert isinstance(card1, Card)
         assert isinstance(card2, Card)
-        await asyncio.gather(*[
+        await asyncio.wait([
             p1.take_on_hand(card2, sender=p2),
             p2.take_on_hand(card1, sender=p1)
         ])
@@ -180,12 +240,12 @@ class Player:
         assert isinstance(my_card, Card)
 
         if cmd == "phase3:give_card":
-            self.local_log[-1] = f"🎁 отдана `{my_card.name}` для *{next_player.user_fullname}*"        
-            self.global_log[-1] = f"♣️ Отдал карту для {next_player.user_fullname}"
+            self.local_log.append(f"🎁 отдана `{my_card.name}` для *{next_player.user_fullname}*")
+            self.global_log.append(f"♣️ Отдал карту для {next_player.user_fullname}")
         else:
             assert cmd == "phase3:block_exchange_card"
-            self.local_log[-1] = f"🛡 сыграна защита `{my_card.name}` от *{next_player.user_fullname}*"        
-            self.global_log[-1] = f"🛡 Защитился `{my_card.name}` от обмена с {next_player.user_fullname}"
+            self.local_log.append(f"🛡 сыграна защита `{my_card.name}` от *{next_player.user_fullname}*")        
+            self.global_log.append(f"🛡 Защитился `{my_card.name}` от обмена с {next_player.user_fullname}")
         return self, my_card
 
     def update_player_side(self):
@@ -201,10 +261,24 @@ class Player:
         for c in self.hand:
             if c.is_playable() and type(c) not in [type(_) for _ in result]:
                 if isinstance(c, IPlayableToPerson):
-                    candidates = c.get_person_target(self)
+                    candidates = c.get_targets(self)
                     if len(candidates) > 0:
                         result.append(c)
         return result
+
+    def get_possible_def(self, card: Card):
+        ret = []
+        print("Защита от карты:", card.__class__.__name__)
+        for c in self.hand:
+            print(c.__dict__.get("def_play", []))
+            if card.__class__.__name__ in c.__dict__.get("def_play", []):
+                print("Защита найдена")
+                ret.append(c)
+        print("Возможно сыграть в ответ:", ret)
+        return ret
+        
+
+
 
     def cnt_infection(self):
         cnt = 0
@@ -308,18 +382,19 @@ class Player:
     def pull_deck(self) -> Card:
         return self.board.deck.pop(0)   
 
-    async def take_on_hand(self, card, sender=None):
+    async def take_on_hand(self, card, sender=None, silent=False):
         self.hand.append(card)
         if not sender:
             self.local_log.append(f"🎲 событие `{card.name}` c колоды")
-            self.global_log.append(f"🎲 Вытянул событие из колоды")        
+            if not silent:
+                self.global_log.append(f"🎲 Вытянул событие из колоды")        
 
         if sender and sender.is_evil() and card.is_infection() and not self.is_evil():
             self.become_infected()
 
         if sender:
             self.local_log.append(f"🤲 получена `{card.name}` от *{sender.user_fullname}*")
-            sender.global_log[-1] = f"👌🏻 Передал карту {self.user_fullname}"
+            sender.global_log.append(f"👌🏻 Передал карту {self.user_fullname}")
         # for j, s in enumerate(self.hand_slots):
         #     if not s["card"]:
         #         self.hand_slots[j]["card"] = card 
@@ -340,13 +415,10 @@ class Player:
         Если цель игрок - играется на него
         """
         assert target is None or target.__class__.__name__ == "Player"
-        self.local_log[-1] = f"▶️ сыграна `{card.name}`"
-        self.global_log[-1] = f"▶️ Сыграл карту `{card.name}`"
+        self.local_log.append(f"▶️ сыграна `{card.name}`" + f" против {target.name}" if target else "")
+        self.global_log.append(f"▶️ Сыграл карту `{card.name}`" + f" против {target.name}" if target else "")
         print(f"{self.name} сыграл карту {card.name}")
-
-        if target.__class__.__name__ == "Player":
-            return card.on_played_to_person(self, target)
-
+        
         return True
 
     def play_panic(self, card: Card):
@@ -384,7 +456,7 @@ class Player:
     #     print(f"Вы дали карту: {card.name}, а получили {his_card.name}")
 
     def drop_card(self, card: Card):
-        self.local_log[-1] = f"🗑 сброшена `{card.name}`"   
-        self.global_log[-1] = f"🗑 Сбросил карту"
+        self.local_log.append(f"🗑 сброшена `{card.name}`")   
+        self.global_log.append(f"🗑 Сбросил карту")
         self.board.deck.append(card)
         print(f"Карта {card.name} помещена в колоду")

@@ -25,14 +25,39 @@ class Board:
         random.shuffle(self.players)
         self.turn = -1  # Чья очередь. Пока ничья
         self.move = 0   # Номер ходя по порядку
-        self.is_end = False
         self.turn_sequence = 1  # -1
         self.current_player = self.players[0]
+
+    def is_end(self):
+        return self.evil_dead() or self.all_players_infected()
+    
+    def evil_dead(self):
+        for p in self.players:
+            if p.is_evil():
+                return False
+        return True
+
+    def all_players_infected(self):
+        for p in self.players:
+            if p.is_good():
+                return False
+        return True
 
     def get_player(self, uuid):
         for u in self.players:
             if u.uuid == uuid:
                 return u
+
+    def kill_player(self, p: Player):
+        members = []
+        for _ in self.players:
+            if _ != p:
+                members.append(_)
+        self.deck.extend(p.hand)
+        self.players = members
+        print(f"Игрок {p.name} покинул игру, его карты помещены в колоду")
+        
+
 
     def get_player_seat(self, p: Player):
         for i, _ in enumerate(self.players):

@@ -1,6 +1,6 @@
 import asyncio
 from app.player import Player
-# from app.card import Card
+from app.card import Card, IPlayableToPerson
 # from app.misc import chunks
 from app.deck_normal import game_info
 from app.board import Board
@@ -58,6 +58,8 @@ class Game:
             if index is not None:
                 c = self.callback_input[p.user_id].pop(index)
                 await self.clear_input(p)
+                if " " not in c.data:
+                    return c.data, None
                 return c.data.split(" ")        
 
     def add_player(self, player_id):
@@ -119,7 +121,7 @@ class Game:
         
         await self.view.show_cards_to_all()
         
-        while not self.board.is_end:
+        while not self.board.is_end():
             await asyncio.sleep(0)
             p = self.board.next_turn()
             # Рисуем стол и очередность в общем чате
@@ -127,7 +129,23 @@ class Game:
             if not await p.phase1():
                 continue
             
-            await p.phase2()
+            await p.phase2_prepare()
+            await self.view.show_table_to_all()
+            target, card = await p.phase2()
+            await self.view.show_table_to_all()
+            if target: 
+                success = await target.phasedef(card, p)
+                # await self.view.show_table_to_all() 
+                if not success:    
+                    print("Не получилось защититься - играем")
+                    print(card.__dict__)
+                    if isinstance(card, IPlayableToPerson):
+                        print("Есть такая")
+                        await card.on_played_to_person(p, target) 
+                        if self.board.is_end():
+                            break
+                    else:
+                        print("нет такой")
 
             # ----- TODO: Здесь защищается тот, против кого играли
 
@@ -136,7 +154,13 @@ class Game:
 
             next_player = self.board.player_next(p)
             await p.phase3_prepare(next_player)
+            await self.view.show_table_to_all()
             await p.phase3(next_player)
-            
-        await self.view.print_group("game ended")
+
+        if self.board.evil_dead():
+            await self.view.print_group(game_info["humans_won"])
+        elif self.board.all_players_infected():
+            await self.view.print_group(game_info["evil_won"])
+        else:
+            await self.view.print_group("game ended")
         return

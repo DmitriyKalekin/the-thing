@@ -137,6 +137,11 @@ class Telebot:
         params = {'chat_id': chat_id, **kwargs}
         return await self.post(url, params)
 
+    async def deleteMessage(self, chat_id, message_id) -> dict:
+        url = self.url + 'deleteMessage'
+        params = {'chat_id': chat_id, 'message_id': message_id}
+        return await self.post(url, params)
+
     async def editMessageText(self, chat_id, message_id, text, **kwargs) -> dict:
         if "parse_mode" not in kwargs and "@" not in text:
             kwargs["parse_mode"] = "markdown"        
