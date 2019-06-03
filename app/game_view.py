@@ -10,13 +10,15 @@ import traceback
 
 
 class GameView:
-    def __init__(self, game):
+    def __init__(self):
+        pass
+        # self.game = game
+    
+    def init(self, game):
         self.game = game
         self.t = game.app["telebot"]
         self.cfg = game.app["cfg"]
         self.group_chat_id = self.game.group_chat_id
-
-    def init(self):
         self.board = self.game.board
 
     async def show_cards_to_all(self):
@@ -49,12 +51,17 @@ class GameView:
      
         return
 
+    async def clear_input(self, p: Player):
+        assert p.panel_message_id is not None
+        return await self.t.editMessageText(p.user_id, p.panel_message_id, "\r\n".join(p.local_log)) 
+
+
     async def clear_hand(self, p: Player):
         print("Чистим руку", p.user_id, p.panel_message_id)
         await self.t.deleteMessage(p.user_id, p.panel_message_id)
         await self.delete_image_slots(p)
 
-    async def show_play_drop_options(self, p):
+    async def show_play_drop_options(self, p: Player):
         play_opts = []
         for play_card in p.get_possible_play():
             candidates = play_card.get_targets(p)

@@ -84,6 +84,7 @@ class Player:
         # p.global_log = "тянет карту с колоды..."
         # await self.show_table_to_all()
         # await self.show_log_to_all(f"Фаза 1. {p.user_fullname} тянет карту с колоды")
+        print(f"ФАЗА 1. Игрок {self.name}")
         card = self.pull_deck()
         assert isinstance(card, Card)
         if card.is_panic():

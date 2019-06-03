@@ -9,29 +9,27 @@ from app.telebot import Callback, User
 from app.game_view import GameView   
 
 
-def list_get(l, idx, default):
-    try:
-        return l[idx]
-    except IndexError:
-        return default
-
-
 class Game:
     MIN_PLAYERS = 4
     STATUS_PENDING = "pending"
     STATUS_LAUNCHED = "launched"
     STATUS_CANCELED = "canceled"
 
-    def __init__(self, group_chat_id, app):
-        self.group_chat_id = group_chat_id
+    def __init__(self):
         self.channels = []
         self.status = Game.STATUS_PENDING
         self.board = None
+        self.callback_input = dict()
+
+    def set_view(self, view):
+        view.init(self)
+        self.view = view
+
+    def init(self, group_chat_id, app):
+        self.group_chat_id = group_chat_id
         self.app = app
         self.app["events"].subscribe_callback(self.group_chat_id, self)
-        self.callback_input = dict()
-        # self.table = "```Здесь отобразится стол```"        
-        self.view = GameView(self)
+
 
     async def update_callback(self, callback: Callback):
         assert type(callback.sender) == User
@@ -40,10 +38,6 @@ class Game:
         self.callback_input[callback.chat_id].append(callback)
         await asyncio.sleep(0)
         return
-
-    async def clear_input(self, p: Player):
-        assert p.panel_message_id is not None
-        return await self.app["telebot"].editMessageText(p.user_id, p.panel_message_id, "\r\n".join(p.local_log)) 
 
     async def input(self, p: Player):
         while True:
@@ -57,7 +51,7 @@ class Game:
                     index = i
             if index is not None:
                 c = self.callback_input[p.user_id].pop(index)
-                await self.clear_input(p)
+                await self.view.clear_input(p)
                 if " " not in c.data:
                     return c.data, None
                 return c.data.split(" ")        
@@ -78,7 +72,7 @@ class Game:
                 self.app["events"].unsubscribe_callback(p.user_id, self)    
             return
         await self.view.print_group(game_info["description"] + game_info["on_start_tip"])        
-        if self.app["cfg"].DEBUG:
+        if True:  # self.app["cfg"].DEBUG
             self.channels = [
                 {
                     "group_chat_id": self.group_chat_id,
@@ -106,7 +100,7 @@ class Game:
                 }                                     
             ]
         self.board = Board(self.channels)
-        self.view.init()
+        self.view.init(self)
         for p in self.board.players:
             assert type(p) == Player
             p.init(self.view, self)
@@ -116,6 +110,7 @@ class Game:
     # TODO: ------------------------------- refactor -------------------
 
     async def run(self):
+        print("started")
         # До старта игры показываем карты игрокам, пишем историю ситуации и ждём, чтобы они прочитали
         assert len(self.board.players) > 0
         

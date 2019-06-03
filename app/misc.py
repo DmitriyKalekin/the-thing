@@ -5,6 +5,12 @@ def chunks(l: list, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
+def list_get(l, idx, default):
+    try:
+        return l[idx]
+    except IndexError:
+        return default
+
 
 def print_trace():
     import traceback

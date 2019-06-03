@@ -1,5 +1,6 @@
 import asyncio
 from app.game import Game
+from app.game_view import GameView
 # 
 # from pprint import pprint
 # import traceback
@@ -36,7 +37,9 @@ class CommandsObserver:
             return
 
         assert msg.chat_id < 0
-        game = Game(msg.chat_id, self.app)
+        game = Game()
+        game.init(msg.chat_id, self.app)
+        game.set_view(GameView())
         game.add_player(msg.sender.id)
         self.app["games"][msg.chat_id] = game
 
